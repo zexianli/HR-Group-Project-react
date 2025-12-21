@@ -1,8 +1,4 @@
-import documentsReducer, {
-  setDocument,
-  removeDocument,
-  clearDocuments,
-} from '../documentsSlice';
+import documentsReducer, { setDocument, removeDocument, clearDocuments } from '../documentsSlice';
 
 describe('documentsSlice reducer', () => {
   const initialState = {
@@ -34,10 +30,7 @@ describe('documentsSlice reducer', () => {
       },
     };
 
-    const state = documentsReducer(
-      initialState,
-      setDocument(payload)
-    );
+    const state = documentsReducer(initialState, setDocument(payload));
 
     expect(state.files.optReceipt).toEqual(payload.data);
   });
@@ -51,10 +44,7 @@ describe('documentsSlice reducer', () => {
       },
     };
 
-    const state = documentsReducer(
-      populatedState,
-      removeDocument('optReceipt')
-    );
+    const state = documentsReducer(populatedState, removeDocument('optReceipt'));
 
     expect(state.files.optReceipt).toBe(null);
   });

@@ -9,8 +9,7 @@ export const uploadDocumentAPI = (formData) =>
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
-export const fetchDocumentsAPI = () =>
-  api.get('/documents');
+export const fetchDocumentsAPI = () => api.get('/documents');
 
 export const downloadDocumentAPI = (id) =>
   api.get(`/documents/${id}/download`, {

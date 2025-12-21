@@ -1,6 +1,6 @@
 //src/features/documents/documentSlice.js
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchDocuments, uploadDocument } from './documentsThunks'; 
+import { fetchDocuments, uploadDocument } from './documentsThunks';
 
 const initialState = {
   files: {
@@ -33,29 +33,25 @@ const documentsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-        .addCase(fetchDocuments.pending, (state) => {
+      .addCase(fetchDocuments.pending, (state) => {
         state.loading = true;
-        })
-        .addCase(fetchDocuments.fulfilled, (state, action) => {
+      })
+      .addCase(fetchDocuments.fulfilled, (state, action) => {
         state.loading = false;
         state.files = action.payload;
-        })
-        .addCase(uploadDocument.fulfilled, (state, action) => {
+      })
+      .addCase(uploadDocument.fulfilled, (state, action) => {
         const { type, data } = action.payload;
         state.files[type] = data;
         state.loading = false;
-        })
-        .addCase(fetchDocuments.rejected, (state, action) => {
+      })
+      .addCase(fetchDocuments.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
-        });
-    }
+      });
+  },
 });
 
-export const {
-  setDocument,
-  removeDocument,
-  clearDocuments,
-} = documentsSlice.actions;
+export const { setDocument, removeDocument, clearDocuments } = documentsSlice.actions;
 
 export default documentsSlice.reducer;

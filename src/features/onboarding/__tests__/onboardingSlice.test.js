@@ -1,7 +1,4 @@
-import onboardingReducer, {
-  setApplication,
-  setStatus,
-} from '../onboardingSlice';
+import onboardingReducer, { setApplication, setStatus } from '../onboardingSlice';
 
 describe('onboardingSlice reducer', () => {
   const initialState = {
@@ -23,19 +20,13 @@ describe('onboardingSlice reducer', () => {
       visa: 'OPT',
     };
 
-    const state = onboardingReducer(
-      initialState,
-      setApplication(application)
-    );
+    const state = onboardingReducer(initialState, setApplication(application));
 
     expect(state.application).toEqual(application);
   });
 
   it('should handle setStatus', () => {
-    const state = onboardingReducer(
-      initialState,
-      setStatus('pending')
-    );
+    const state = onboardingReducer(initialState, setStatus('pending'));
 
     expect(state.status).toBe('pending');
   });
