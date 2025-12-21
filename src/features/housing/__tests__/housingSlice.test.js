@@ -1,7 +1,4 @@
-import housingReducer, {
-  setHousing,
-  setReports,
-} from '../housingSlice';
+import housingReducer, { setHousing, setReports } from '../housingSlice';
 
 describe('housingSlice reducer', () => {
   const initialState = {
@@ -22,10 +19,7 @@ describe('housingSlice reducer', () => {
       landlord: { name: 'John Doe' },
     };
 
-    const state = housingReducer(
-      initialState,
-      setHousing(house)
-    );
+    const state = housingReducer(initialState, setHousing(house));
 
     expect(state.house).toEqual(house);
   });
@@ -39,10 +33,7 @@ describe('housingSlice reducer', () => {
       },
     ];
 
-    const state = housingReducer(
-      initialState,
-      setReports(reports)
-    );
+    const state = housingReducer(initialState, setReports(reports));
 
     expect(state.reports.length).toBe(1);
     expect(state.reports[0].title).toBe('Broken AC');

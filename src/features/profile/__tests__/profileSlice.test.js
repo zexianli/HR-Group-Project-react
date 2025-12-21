@@ -1,7 +1,4 @@
-import profileReducer, {
-  setProfile,
-  clearProfile,
-} from '../profileSlice';
+import profileReducer, { setProfile, clearProfile } from '../profileSlice';
 
 describe('profileSlice reducer', () => {
   const initialState = {
@@ -22,10 +19,7 @@ describe('profileSlice reducer', () => {
       email: 'leo@test.com',
     };
 
-    const state = profileReducer(
-      initialState,
-      setProfile(profile)
-    );
+    const state = profileReducer(initialState, setProfile(profile));
 
     expect(state.profile).toEqual(profile);
   });

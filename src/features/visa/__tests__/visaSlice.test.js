@@ -1,6 +1,4 @@
-import visaReducer, {
-  setVisaData,
-} from '../visaSlice';
+import visaReducer, { setVisaData } from '../visaSlice';
 
 describe('visaSlice reducer', () => {
   const initialState = {
@@ -23,10 +21,7 @@ describe('visaSlice reducer', () => {
       nextStep: 'Upload OPT EAD',
     };
 
-    const state = visaReducer(
-      initialState,
-      setVisaData(visaData)
-    );
+    const state = visaReducer(initialState, setVisaData(visaData));
 
     expect(state.documents.optReceipt.status).toBe('approved');
     expect(state.nextStep).toBe('Upload OPT EAD');

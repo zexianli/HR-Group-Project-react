@@ -1,7 +1,4 @@
-import {
-  selectDocuments,
-  selectDocumentByType,
-} from '../documentsSelectors';
+import { selectDocuments, selectDocumentByType } from '../documentsSelectors';
 
 describe('documents selectors', () => {
   const state = {
