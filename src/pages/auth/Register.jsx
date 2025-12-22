@@ -37,52 +37,52 @@ function Register() {
     // get input values
     let isError = false;
     const username = formData.get('username');
-    const email = formData.get('email');
+    // const email = formData.get('email');
     const password = formData.get('password');
     const confirm = formData.get('confirm');
 
     const updatedFormInputs = [...formInputs];
 
+    // // validate email
+    // if (!email) {
+    //   // empty input validation
+    //   isError = true;
+    //   updatedFormInputs[0].error = true;
+    //   updatedFormInputs[0].helperText = 'Enter email';
+    // } else {
+    //   // format check
+    //   if (!/^[\w.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
+    //     isError = true;
+    //     updatedFormInputs[0].error = true;
+    //     updatedFormInputs[0].helperText = 'Email format invalid';
+    //   }
+    //   // length check
+    //   if (email.length < 4 || email.length > 75) {
+    //     isError = true;
+    //     updatedFormInputs[0].error = true;
+    //     updatedFormInputs[0].helperText = email.length < 4 ? 'Email too short' : 'Email too long';
+    //   }
+    // }
+
     // validate username
     if (!username) {
       // empty input validation
       isError = true;
-      updatedFormInputs[0].error = true;
-      updatedFormInputs[0].helperText = 'Enter username';
+      updatedFormInputs[1].error = true;
+      updatedFormInputs[1].helperText = 'Enter username';
     } else {
       // length check
       if (username.length < 6 || username.length > 40) {
         isError = true;
-        updatedFormInputs[0].error = true;
-        updatedFormInputs[0].helperText =
+        updatedFormInputs[1].error = true;
+        updatedFormInputs[1].helperText =
           username.length < 6 ? 'Username too short' : 'Username too long';
       }
       // special characters check
       if (!/^[A-Za-z0-9]+$/.test(username)) {
         isError = true;
-        updatedFormInputs[0].error = true;
-        updatedFormInputs[0].helperText = 'Only letters and digits allowed';
-      }
-    }
-
-    // validate email
-    if (!email) {
-      // empty input validation
-      isError = true;
-      updatedFormInputs[1].error = true;
-      updatedFormInputs[1].helperText = 'Enter email';
-    } else {
-      // format check
-      if (!/^[\w.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
-        isError = true;
         updatedFormInputs[1].error = true;
-        updatedFormInputs[1].helperText = 'Email format invalid';
-      }
-      // length check
-      if (email.length < 4 || email.length > 75) {
-        isError = true;
-        updatedFormInputs[1].error = true;
-        updatedFormInputs[1].helperText = email.length < 4 ? 'Email too short' : 'Email too long';
+        updatedFormInputs[1].helperText = 'Only letters and digits allowed';
       }
     }
 
