@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-// import { useLocation, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import TextInput from '../../components/auth/TextInput';
 import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
 
 function Register() {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
   // const queryParams = new URLSearchParams(useLocation().search);
   // const registrationToken = queryParams.get('token') || null;
   // register will ask for username, password and email
@@ -129,6 +129,7 @@ function Register() {
       // call the API to register
       // redirect to the onboarding page for registering
       // might need to use registrationToken
+      navigate('/onboarding');
     }
   }
 
