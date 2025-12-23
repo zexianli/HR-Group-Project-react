@@ -1,0 +1,101 @@
+/* Page background */
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1d2671, #c33764);
+    font-family: Arial, sans-serif;
+}
+
+/* Card */
+.login-card {
+    margin: 3em;
+    background: #fff;
+    width: 360px;
+    padding: 32px;
+    border-radius: 10px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Title */
+.login-title {
+    text-align: center;
+    margin-bottom: 24px;
+    color: #333;
+}
+
+/* Form groups */
+.form-group {
+    margin-bottom: 18px;        
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 6px;
+    color: #555;
+}
+
+/* Inputs */
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #5b5fc7;
+  box-shadow: 0 0 0 2px rgba(91, 95, 199, 0.2);
+}
+
+/* Error states */
+.error-input {
+  border-color: #e74c3c;
+}
+
+.error-text {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #e74c3c;
+}
+
+/* API error banner */
+.error-banner {
+  background: #fdecea;
+  color: #c0392b;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* Button */
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: #5b5fc7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.login-btn:hover {
+  background: #4a4fb3;
+}
+
+.login-btn:active {
+  transform: translateY(1px);
+}
+
+.login-btn:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
