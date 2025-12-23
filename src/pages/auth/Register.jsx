@@ -3,15 +3,19 @@ import { useLocation, useNavigate } from 'react-router';
 import TextInput from '../../components/auth/TextInput';
 import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
-import { validateTokenAPI } from '../../features/auth/authAPI';
+import { validateTokenAPI, registerAPI } from '../../features/auth/authAPI';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../../features/auth/authSlice';
 
 function Register() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const registrationToken = queryParams.get('token') || null;
 
   const [isValidatingToken, setIsValidatingToken] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formInputs, setFormInputs] = useState([
     {
@@ -59,7 +63,7 @@ function Register() {
     validateToken();
   }, [registrationToken, navigate]);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
 
@@ -133,10 +137,46 @@ function Register() {
 
     if (isError) {
       setFormInputs(updatedFormInputs);
-    } else {
-      // call the API to register
-      // redirect to the onboarding page for registering
-      // might need to use registrationToken
+      return;
+    }
+
+    // Call registration API
+    setIsSubmitting(true);
+    try {
+      const response = await registerAPI({
+        token: registrationToken,
+        username: username.toLowerCase().trim(),
+        password,
+      });
+
+      const { user, token } = response.data.data;
+      dispatch(setCredentials({ user, token, role: user.role }));
+
+      navigate('/personal', { replace: true });
+    } catch (error) {
+      console.error('Registration failed:', error);
+
+      // Handle backend validation errors
+      if (error.response?.data?.errors) {
+        const backendErrors = error.response.data.errors;
+        const newFormInputs = [...formInputs];
+
+        backendErrors.forEach((err) => {
+          if (err.path === 'username') {
+            newFormInputs[1].error = true;
+            newFormInputs[1].helperText = err.message;
+          } else if (err.path === 'password') {
+            newFormInputs[2].error = true;
+            newFormInputs[2].helperText = err.message;
+          }
+        });
+
+        setFormInputs(newFormInputs);
+      } else {
+        alert(error.response?.data?.message || 'Registration failed. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -192,8 +232,9 @@ function Register() {
           )
         )}
         <PrimaryButton
-          buttonDesc={'Submit'}
+          buttonDesc={isSubmitting ? 'Submitting...' : 'Submit'}
           type={'submit'}
+          disabled={isSubmitting}
           // sx={{ marginTop: '50px', width: 'fit-content', alignSelf: 'end' }}
         />
       </form>
