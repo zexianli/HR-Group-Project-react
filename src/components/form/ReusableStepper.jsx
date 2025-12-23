@@ -4,7 +4,14 @@ import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import ReusableButton from './ReusableButton';
 
-function ReusableStepper({ children, pagesName, handleNext, handlePrev, currPageIndex }) {
+function ReusableStepper({
+  children,
+  pagesName,
+  handleNext,
+  handlePrev,
+  handleSubmit,
+  currPageIndex,
+}) {
   return (
     <>
       <Box sx={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -49,7 +56,7 @@ function ReusableStepper({ children, pagesName, handleNext, handlePrev, currPage
           {currPageIndex !== pagesName.length - 1 ? (
             <ReusableButton onClickMethod={handleNext}>Next</ReusableButton>
           ) : (
-            <ReusableButton>Submit</ReusableButton>
+            <ReusableButton onClickMethod={handleSubmit}>Submit</ReusableButton>
           )}
           {currPageIndex !== 0 && <ReusableButton onClickMethod={handlePrev}>Prev</ReusableButton>}
         </Box>

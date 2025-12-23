@@ -1,12 +1,14 @@
 // import FormControlLabel from '@mui/material/FormControlLabel';
 import FormLabel from '@mui/material/FormLabel';
+import Button from '@mui/material/Button';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import Grid from '@mui/material/Grid';
-import OutlinedInput from '@mui/material/OutlinedInput';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateField } from '@mui/x-date-pickers/DateField';
 import { Select } from '@mui/material';
 import { MenuItem } from '@mui/material';
+import Checkbox from '@mui/material/Checkbox';
 import { styled } from '@mui/material/styles';
 import ReusableInputField from '../../components/form/ReusableInputField';
 
@@ -17,8 +19,34 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function PersonalInfo() {
+function PersonalInfo({ prevNextHandler }) {
+  prevNextHandler({
+    onNext: () => {
+      console.log('next from Personal Info');
+      return true;
+    },
+    onPrev: () => {
+      console.log('prev from Personal Info');
+      return true;
+    },
+    onSubmit: () => {
+      console.log('submit from Personal Info');
+      return true;
+    },
+  });
+
   const [gender, setGender] = useState('');
+
+  // profile picture
+  const [profilePictureCopy, setProfilePictureCopy] = useState(null);
+  const [profilePictureCopyName, setProfilePictureCopyName] = useState('');
+  console.log(profilePictureCopy);
+
+  // driver license
+  const [hasDriverLicense, setHasDriverLicense] = useState(false);
+  const [driverLicenseCopy, setDriverLicenseCopy] = useState(null);
+  const [driverLicenseCopyName, setDriverLicenseCopyName] = useState('');
+  console.log(driverLicenseCopy);
 
   return (
     <Grid container spacing={3}>
@@ -106,39 +134,98 @@ function PersonalInfo() {
           <MenuItem value={'No answer'}>I do not wish to answer</MenuItem>
         </Select>
       </FormGrid>
+      {/* Profile Picture */}
+      <FormGrid size={12}>
+        <Button variant="contained" component="label" sx={{ width: 'fit-content' }}>
+          Upload Profile Picture (.PNG, .JPG)
+          <input
+            type="file"
+            hidden
+            onChange={(e) => {
+              console.log('hello');
+              setProfilePictureCopy(e.target.files[0]);
+              setProfilePictureCopyName(e.target.files[0].name);
+            }}
+          />
+        </Button>
+        {profilePictureCopyName}
+      </FormGrid>
       {/* Driver's license */}
       {/* Do you have a car, if yes show questions related to driver's license and car */}
-      {/* Car information: make, model, color */}
-      <FormGrid size={{ xs: 12, md: 4 }}>
-        <FormLabel htmlFor="car-make">Car make</FormLabel>
-        <OutlinedInput
-          id="car-make"
-          name="car-make"
-          type="text"
-          placeholder="e.g, Ford"
-          size="small"
+      <FormGrid size={{ xs: 12 }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="driver-license"
+              checked={hasDriverLicense}
+              onChange={(e) => {
+                setHasDriverLicense(e.target.checked);
+                setDriverLicenseCopy(null);
+                setDriverLicenseCopyName('');
+              }}
+            />
+          }
+          label="I have a driver's license"
         />
       </FormGrid>
-      <FormGrid size={{ xs: 12, md: 4 }}>
-        <FormLabel htmlFor="car-model">Car model</FormLabel>
-        <OutlinedInput
-          id="car-model"
-          name="car-model"
-          type="text"
-          placeholder="e.g, Fusion Hybrid"
-          size="small"
-        />
-      </FormGrid>
-      <FormGrid size={{ xs: 12, md: 4 }}>
-        <FormLabel htmlFor="car-color">Car color</FormLabel>
-        <OutlinedInput
-          id="car-color"
-          name="car-color"
-          type="text"
-          placeholder="e.g, Silver"
-          size="small"
-        />
-      </FormGrid>
+      {hasDriverLicense && (
+        <>
+          {/* Driver license copy */}
+          <FormGrid size={12}>
+            <Button variant="contained" component="label" sx={{ width: 'fit-content' }}>
+              Upload Driver License Copy (.PNG, .JPG)*
+              <input
+                type="file"
+                hidden
+                onChange={(e) => {
+                  setDriverLicenseCopy(e.target.files[0]);
+                  setDriverLicenseCopyName(e.target.files[0].name);
+                }}
+              />
+            </Button>
+            {driverLicenseCopyName}
+          </FormGrid>
+          {/* Driver's License Number, expiration date */}
+          <ReusableInputField
+            xs={12}
+            md={6}
+            id="dl-number"
+            label="Driver license number"
+            placeholder="e.g, ESL36278E65Y"
+            required
+          />
+          <FormGrid size={{ xs: 12, md: 6 }}>
+            <FormLabel htmlFor="dl-exp-date" required>
+              Driver license expiration date
+            </FormLabel>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DateField id="dl-exp-date" name="dl-exp-date" size="small" required />
+            </LocalizationProvider>
+          </FormGrid>
+          {/* Car information: make, model, color */}
+          <ReusableInputField
+            xs={12}
+            md={4}
+            id="car-make"
+            label="Car make"
+            placeholder="e.g, Ford"
+          />
+          <ReusableInputField
+            xs={12}
+            md={4}
+            id="car-model"
+            label="Car model"
+            placeholder="e.g, Fusion Hybrid"
+          />
+          <ReusableInputField
+            xs={12}
+            md={4}
+            id="car-color"
+            label="Car color"
+            placeholder="e.g, Silver"
+          />
+        </>
+      )}
     </Grid>
   );
 }

@@ -3,7 +3,7 @@ import PersonalInfo from './PersonalInfo';
 import AddressContact from './AddressContact';
 import WorkAuth from './WorkAuth';
 import { Box } from '@mui/material';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 function Onboarding() {
   // a stepper
@@ -12,10 +12,20 @@ function Onboarding() {
   // second page -> HP-34
   // third page -> HP-35
   // fourth page -> confirming page
+  const prevNextHandlerRef = useRef({});
   const pages = [
-    { name: 'Personal Information', ui: <PersonalInfo /> },
-    { name: 'Address and Contact', ui: <AddressContact /> },
-    { name: 'Work Authorization', ui: <WorkAuth /> },
+    {
+      name: 'Personal Information',
+      ui: <PersonalInfo prevNextHandler={(h) => (prevNextHandlerRef.current = h)} />,
+    },
+    {
+      name: 'Address and Contact',
+      ui: <AddressContact prevNextHandler={(h) => (prevNextHandlerRef.current = h)} />,
+    },
+    {
+      name: 'Work Authorization',
+      ui: <WorkAuth prevNextHandler={(h) => (prevNextHandlerRef.current = h)} />,
+    },
   ];
 
   // states
@@ -23,11 +33,17 @@ function Onboarding() {
 
   // functions
   function handleNext() {
+    prevNextHandlerRef.current?.onNext?.();
     setCurrPageIndex((prev) => prev + 1);
   }
 
   function handlePrev() {
+    prevNextHandlerRef.current?.onPrev?.();
     setCurrPageIndex((prev) => prev - 1);
+  }
+
+  function handleSubmit() {
+    prevNextHandlerRef.current?.onSubmit?.();
   }
 
   return (
@@ -36,6 +52,7 @@ function Onboarding() {
         pagesName={pages.map(({ name }) => name)}
         handleNext={handleNext}
         handlePrev={handlePrev}
+        handleSubmit={handleSubmit}
         currPageIndex={currPageIndex}
       >
         {/* This is the code for rendering things  */}

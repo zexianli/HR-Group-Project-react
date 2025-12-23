@@ -1,7 +1,7 @@
 import { Box, Stack } from '@mui/material';
 import ReusableStepper from '../form/ReusableStepper';
 
-function OuterLayout({ children, pagesName, handleNext, handlePrev, currPageIndex }) {
+function OuterLayout({ children, pagesName, handleNext, handlePrev, handleSubmit, currPageIndex }) {
   return (
     <>
       <Stack
@@ -32,6 +32,7 @@ function OuterLayout({ children, pagesName, handleNext, handlePrev, currPageInde
           pagesName={pagesName}
           handleNext={handleNext}
           handlePrev={handlePrev}
+          handleSubmit={handleSubmit}
           currPageIndex={currPageIndex}
         >
           {children}
