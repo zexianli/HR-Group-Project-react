@@ -5,9 +5,9 @@ import NavbarText from './layout/NavbarText';
 
 function OnboardNavBar() {
   const navItems = [
-    { label: 'Personal Information', path: '/onboarding/personal' },
-    { label: 'Visa Status Management', path: '/onboarding/visa' },
-    { label: 'Housing Information', path: '/onboarding/housing' },
+    { label: 'Personal Information', path: '/personal' },
+    { label: 'Visa Status Management', path: '/visa' },
+    { label: 'Housing Information', path: '/housing' },
   ];
 
   return (
