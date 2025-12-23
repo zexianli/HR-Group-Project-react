@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useNavigate } from 'react-router';
 import { useDispatch } from 'react-redux';
 import TextInput from '../../components/auth/TextInput';
@@ -7,62 +9,27 @@ import FormLayout from '../../components/auth/layout/FormLayout';
 import { loginAPI } from '../../features/auth/authAPI';
 import { setCredentials } from '../../features/auth/authSlice';
 
+const loginSchema = z.object({
+  username: z.string().min(1, 'Enter username'),
+  password: z.string().min(1, 'Enter password'),
+});
+
 function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [formInputs, setFormInputs] = useState([
-    {
-      name: 'username',
-      error: false,
-      placeholder: 'e.g., alice1234',
-      helperText: '',
-    },
-    {
-      name: 'password',
-      error: false,
-      type: 'password',
-      helperText: '',
-    },
-  ]);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+  });
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-
-    let isError = false;
-    const username = formData.get('username');
-    const password = formData.get('password');
-
-    const updatedFormInputs = [...formInputs];
-
-    // validate username
-    if (!username) {
-      isError = true;
-      updatedFormInputs[0].error = true;
-      updatedFormInputs[0].helperText = 'Enter username';
-    }
-
-    // validate password
-    if (!password) {
-      isError = true;
-      updatedFormInputs[1].error = true;
-      updatedFormInputs[1].helperText = 'Enter password';
-    }
-
-    if (isError) {
-      setFormInputs(updatedFormInputs);
-      return;
-    }
-
-    // Call login API
-    setIsSubmitting(true);
+  const onSubmit = async (data) => {
     try {
-      const response = await loginAPI({
-        username,
-        password,
-      });
+      const response = await loginAPI(data);
 
       // Store credentials in Redux
       const { user, token } = response.data.data;
@@ -74,40 +41,16 @@ function Login() {
 
       // Handle backend validation errors
       if (error.response?.data?.errors) {
-        const backendErrors = error.response.data.errors;
-        const newFormInputs = [...formInputs];
-
-        backendErrors.forEach((err) => {
-          if (err.path === 'username') {
-            newFormInputs[0].error = true;
-            newFormInputs[0].helperText = err.message;
-          } else if (err.path === 'password') {
-            newFormInputs[1].error = true;
-            newFormInputs[1].helperText = err.message;
-          }
+        error.response.data.errors.forEach((err) => {
+          setError(err.path, { message: err.message });
         });
-
-        setFormInputs(newFormInputs);
       } else {
-        const newFormInputs = [...formInputs];
-        newFormInputs[0].error = true;
-        newFormInputs[0].helperText =
-          error.response?.data?.message || 'Invalid username or password';
-        setFormInputs(newFormInputs);
+        setError('username', {
+          message: error.response?.data?.message || 'Invalid username or password',
+        });
       }
-    } finally {
-      setIsSubmitting(false);
     }
-  }
-
-  function handleChange(error, index) {
-    if (error) {
-      const updatedFormInputs = [...formInputs];
-      updatedFormInputs[index].error = false;
-      updatedFormInputs[index].helperText = '';
-      setFormInputs(updatedFormInputs);
-    }
-  }
+  };
 
   return (
     <FormLayout
@@ -116,24 +59,25 @@ function Login() {
     >
       <form
         style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}
       >
-        {formInputs.map(({ name, error, placeholder, type, helperText }, index) => (
-          <TextInput
-            key={name}
-            name={name}
-            label={name[0].toUpperCase() + name.slice(1)}
-            placeholder={placeholder || ''}
-            type={type || 'text'}
-            error={error}
-            helperText={helperText}
-            onChange={() => handleChange(error, index)}
-          />
-        ))}
-
+        <TextInput
+          {...register('username')}
+          label="Username"
+          placeholder="e.g., alice1234"
+          error={!!errors.username}
+          helperText={errors.username?.message}
+        />
+        <TextInput
+          {...register('password')}
+          label="Password"
+          type="password"
+          error={!!errors.password}
+          helperText={errors.password?.message}
+        />
         <PrimaryButton
           buttonDesc={isSubmitting ? 'Logging in...' : 'Login'}
-          type={'submit'}
+          type="submit"
           disabled={isSubmitting}
         />
       </form>
