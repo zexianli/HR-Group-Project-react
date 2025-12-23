@@ -1,14 +1,22 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useDispatch } from 'react-redux';
 import TextInput from '../../components/auth/TextInput';
 import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
+import { loginAPI } from '../../features/auth/authAPI';
+import { setCredentials } from '../../features/auth/authSlice';
 
 function Login() {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formInputs, setFormInputs] = useState([
     {
-      name: 'email',
+      name: 'username',
       error: false,
-      placeholder: 'e.g., alice1234@gmail.com',
+      placeholder: 'e.g., alice1234',
       helperText: '',
     },
     {
@@ -19,27 +27,21 @@ function Login() {
     },
   ]);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
 
     let isError = false;
-    const email = formData.get('email');
+    const username = formData.get('username');
     const password = formData.get('password');
 
     const updatedFormInputs = [...formInputs];
 
-    // validate email
-    if (!email) {
+    // validate username
+    if (!username) {
       isError = true;
       updatedFormInputs[0].error = true;
-      updatedFormInputs[0].helperText = 'Enter email';
-    } else {
-      if (!/^[\w.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
-        isError = true;
-        updatedFormInputs[0].error = true;
-        updatedFormInputs[0].helperText = 'Email format invalid';
-      }
+      updatedFormInputs[0].helperText = 'Enter username';
     }
 
     // validate password
@@ -51,26 +53,50 @@ function Login() {
 
     if (isError) {
       setFormInputs(updatedFormInputs);
-    } else {
-      // call login API
-      const payload = {
-        email,
+      return;
+    }
+
+    // Call login API
+    setIsSubmitting(true);
+    try {
+      const response = await loginAPI({
+        username,
         password,
-      };
-      // example
-      fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error('Login failed');
-          return res.json();
-        })
-        .then((data) => {
-          localStorage.setItem('token', data.token);
-        })
-        .catch(console.error);
+      });
+
+      // Store credentials in Redux
+      const { user, token } = response.data.data;
+      dispatch(setCredentials({ user, token, role: user.role }));
+
+      navigate('/personal', { replace: true });
+    } catch (error) {
+      console.error('Login failed:', error);
+
+      // Handle backend validation errors
+      if (error.response?.data?.errors) {
+        const backendErrors = error.response.data.errors;
+        const newFormInputs = [...formInputs];
+
+        backendErrors.forEach((err) => {
+          if (err.path === 'username') {
+            newFormInputs[0].error = true;
+            newFormInputs[0].helperText = err.message;
+          } else if (err.path === 'password') {
+            newFormInputs[1].error = true;
+            newFormInputs[1].helperText = err.message;
+          }
+        });
+
+        setFormInputs(newFormInputs);
+      } else {
+        const newFormInputs = [...formInputs];
+        newFormInputs[0].error = true;
+        newFormInputs[0].helperText =
+          error.response?.data?.message || 'Invalid username or password';
+        setFormInputs(newFormInputs);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -105,7 +131,11 @@ function Login() {
           />
         ))}
 
-        <PrimaryButton buttonDesc={'Login'} type={'submit'} />
+        <PrimaryButton
+          buttonDesc={isSubmitting ? 'Logging in...' : 'Login'}
+          type={'submit'}
+          disabled={isSubmitting}
+        />
       </form>
     </FormLayout>
   );
