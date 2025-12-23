@@ -53,25 +53,24 @@ function Login() {
       setFormInputs(updatedFormInputs);
     } else {
       // call login API
-      //   const payload = {
-      //     email,
-      //     password,
-      //   };
+      const payload = {
+        email,
+        password,
+      };
       // example
-      // fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload),
-      // })
-      //   .then((res) => {
-      //     if (!res.ok) throw new Error('Login failed');
-      //     return res.json();
-      //   })
-      //   .then((data) => {
-      //     localStorage.setItem('token', data.token);
-      //     navigate('/dashboard');
-      //   })
-      //   .catch(console.error);
+      fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error('Login failed');
+          return res.json();
+        })
+        .then((data) => {
+          localStorage.setItem('token', data.token);
+        })
+        .catch(console.error);
     }
   }
 

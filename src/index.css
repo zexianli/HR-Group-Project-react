@@ -67,8 +67,13 @@ button:focus-visible {
   }
 } */
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   background-color: #f4f2ee;
+  margin: 0;
 }
 
 #root {
