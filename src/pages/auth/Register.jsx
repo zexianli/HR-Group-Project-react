@@ -1,11 +1,36 @@
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useLocation, useNavigate } from 'react-router';
+import { useDispatch } from 'react-redux';
 import TextInput from '../../components/auth/TextInput';
 import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
 import { validateTokenAPI, registerAPI } from '../../features/auth/authAPI';
-import { useDispatch } from 'react-redux';
 import { setCredentials } from '../../features/auth/authSlice';
+
+// Zod validation schema matching backend requirements
+const registerSchema = z
+  .object({
+    username: z
+      .string()
+      .min(3, 'Username must be at least 3 characters long')
+      .max(12, 'Username can be at most 12 characters long')
+      .regex(/^[A-Za-z0-9]+$/, 'Only letters and digits allowed'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters long')
+      .max(16, 'Password can be at most 16 characters long')
+      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+      .regex(/[0-9]/, 'Password must contain at least one number'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords did not match',
+    path: ['confirmPassword'],
+  });
 
 function Register() {
   const navigate = useNavigate();
@@ -15,21 +40,21 @@ function Register() {
   const registrationToken = queryParams.get('token') || null;
 
   const [isValidatingToken, setIsValidatingToken] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [email, setEmail] = useState('');
 
-  const [formInputs, setFormInputs] = useState([
-    {
-      name: 'email',
-      error: false,
-      placeholder: 'e.g., alice1234@gmail.com',
-      helperText: '',
-      disabled: true,
-      defaultValue: 'user123@gmail.com',
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      username: '',
+      password: '',
+      confirmPassword: '',
     },
-    { name: 'username', error: false, placeholder: 'e.g., alice1234', helperText: '' },
-    { name: 'password', error: false, type: 'password', helperText: '' },
-    { name: 'confirm password', error: false, type: 'password', helperText: '' },
-  ]);
+  });
 
   // Validate registration token on mount
   useEffect(() => {
@@ -41,18 +66,10 @@ function Register() {
 
       try {
         const response = await validateTokenAPI(registrationToken);
+        const emailFromToken = response.data.data.email;
 
-        const email = response.data.data.email;
-
-        setFormInputs((prev) => {
-          const updated = [...prev];
-          const emailIndex = updated.findIndex((input) => input.name === 'email');
-          if (emailIndex !== -1) {
-            updated[emailIndex].defaultValue = email;
-          }
-          return updated;
-        });
-
+        // Store email in state for display
+        setEmail(emailFromToken);
         setIsValidatingToken(false);
       } catch (error) {
         console.error('Token validation failed:', error);
@@ -63,90 +80,12 @@ function Register() {
     validateToken();
   }, [registrationToken, navigate]);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-
-    // get input values
-    let isError = false;
-    const username = formData.get('username');
-    // const email = formData.get('email');
-    const password = formData.get('password');
-    const confirm = formData.get('confirm password');
-
-    const updatedFormInputs = [...formInputs];
-
-    // validate username
-    if (!username) {
-      // empty input validation
-      isError = true;
-      updatedFormInputs[1].error = true;
-      updatedFormInputs[1].helperText = 'Enter username';
-    } else {
-      // length check
-      if (username.length < 6 || username.length > 40) {
-        isError = true;
-        updatedFormInputs[1].error = true;
-        updatedFormInputs[1].helperText =
-          username.length < 6 ? 'Username too short' : 'Username too long';
-      }
-      // special characters check
-      if (!/^[A-Za-z0-9]+$/.test(username)) {
-        isError = true;
-        updatedFormInputs[1].error = true;
-        updatedFormInputs[1].helperText = 'Only letters and digits allowed';
-      }
-    }
-
-    // validate password
-    if (!password) {
-      // empty input validation
-      isError = true;
-      updatedFormInputs[2].error = true;
-      updatedFormInputs[2].helperText = 'Enter password';
-    } else {
-      // length check
-      if (password.length < 6 || password.length > 40) {
-        isError = true;
-        updatedFormInputs[2].error = true;
-        updatedFormInputs[2].helperText =
-          password.length < 6 ? 'Username too short' : 'Username too long';
-      }
-      // special characters check
-      if (!/^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).+$/.test(password)) {
-        isError = true;
-        updatedFormInputs[2].error = true;
-        updatedFormInputs[2].helperText = 'Password format invalid';
-      }
-    }
-
-    // validate confirm password
-    if (!confirm) {
-      // empty input validation
-      isError = true;
-      updatedFormInputs[3].error = true;
-      updatedFormInputs[3].helperText = 'Confirm password';
-    } else {
-      // same with password check
-      if (confirm !== password) {
-        isError = true;
-        updatedFormInputs[3].error = true;
-        updatedFormInputs[3].helperText = 'Passwords did not match';
-      }
-    }
-
-    if (isError) {
-      setFormInputs(updatedFormInputs);
-      return;
-    }
-
-    // Call registration API
-    setIsSubmitting(true);
+  const onSubmit = async (data) => {
     try {
       const response = await registerAPI({
         token: registrationToken,
-        username: username.toLowerCase().trim(),
-        password,
+        username: data.username.toLowerCase().trim(),
+        password: data.password,
       });
 
       const { user, token } = response.data.data;
@@ -158,36 +97,16 @@ function Register() {
 
       // Handle backend validation errors
       if (error.response?.data?.errors) {
-        const backendErrors = error.response.data.errors;
-        const newFormInputs = [...formInputs];
-
-        backendErrors.forEach((err) => {
-          if (err.path === 'username') {
-            newFormInputs[1].error = true;
-            newFormInputs[1].helperText = err.message;
-          } else if (err.path === 'password') {
-            newFormInputs[2].error = true;
-            newFormInputs[2].helperText = err.message;
-          }
+        error.response.data.errors.forEach((err) => {
+          setError(err.path, { message: err.message });
         });
-
-        setFormInputs(newFormInputs);
       } else {
-        alert(error.response?.data?.message || 'Registration failed. Please try again.');
+        setError('username', {
+          message: error.response?.data?.message || 'Registration failed. Please try again.',
+        });
       }
-    } finally {
-      setIsSubmitting(false);
     }
-  }
-
-  function handleChange(error, index) {
-    if (error) {
-      const updatedFormInputs = [...formInputs];
-      updatedFormInputs[index].error = false;
-      updatedFormInputs[index].helperText = '';
-      setFormInputs(updatedFormInputs);
-    }
-  }
+  };
 
   if (isValidatingToken) {
     return (
@@ -211,31 +130,41 @@ function Register() {
     >
       <form
         style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}
       >
-        {formInputs.map(
-          ({ name, error, placeholder, type, helperText, disabled, defaultValue }, index) => (
-            <TextInput
-              key={name}
-              name={name}
-              label={name[0].toUpperCase() + name.slice(1)}
-              placeholder={placeholder || ''}
-              type={type || 'text'}
-              error={error}
-              disabled={disabled}
-              defaultValue={defaultValue || ''}
-              onChange={() => {
-                handleChange(error, index);
-              }}
-              helperText={helperText}
-            />
-          )
-        )}
+        <TextInput
+          name="email"
+          label="Email"
+          value={email}
+          placeholder="e.g., alice1234@gmail.com"
+          disabled
+          readOnly
+        />
+        <TextInput
+          {...register('username')}
+          label="Username"
+          placeholder="e.g., alice1234"
+          error={!!errors.username}
+          helperText={errors.username?.message}
+        />
+        <TextInput
+          {...register('password')}
+          label="Password"
+          type="password"
+          error={!!errors.password}
+          helperText={errors.password?.message}
+        />
+        <TextInput
+          {...register('confirmPassword')}
+          label="Confirm Password"
+          type="password"
+          error={!!errors.confirmPassword}
+          helperText={errors.confirmPassword?.message}
+        />
         <PrimaryButton
           buttonDesc={isSubmitting ? 'Submitting...' : 'Submit'}
-          type={'submit'}
+          type="submit"
           disabled={isSubmitting}
-          // sx={{ marginTop: '50px', width: 'fit-content', alignSelf: 'end' }}
         />
       </form>
     </FormLayout>
