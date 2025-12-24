@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import '../../components/info/styles.css';
 import { initialProfile, sectionOrder } from '../../assets/data/personal-info';
 import Navbar from '../../components/navbar/OnboardNavBar';
