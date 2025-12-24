@@ -1,0 +1,13 @@
+/* style.css */
+.navbar-text {
+  transition: color 0.2s ease;
+}
+
+.navbar-text--hoverable:hover {
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.navbar-text--active {
+  color: #2563eb;
+}
