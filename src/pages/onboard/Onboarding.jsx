@@ -33,8 +33,10 @@ function Onboarding() {
 
   // functions
   function handleNext() {
-    prevNextHandlerRef.current?.onNext?.();
-    setCurrPageIndex((prev) => prev + 1);
+    const canGoNext = prevNextHandlerRef.current?.onNext?.();
+    if (canGoNext) {
+      setCurrPageIndex((prev) => prev + 1);
+    }
   }
 
   function handlePrev() {
