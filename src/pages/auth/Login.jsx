@@ -1,87 +1,56 @@
-import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useNavigate } from 'react-router';
+import { useDispatch } from 'react-redux';
 import TextInput from '../../components/auth/TextInput';
 import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
+import { loginAPI } from '../../features/auth/authAPI';
+import { setCredentials } from '../../features/auth/authSlice';
+
+const loginSchema = z.object({
+  username: z.string().min(1, 'Enter username'),
+  password: z.string().min(1, 'Enter password'),
+});
 
 function Login() {
-  const [formInputs, setFormInputs] = useState([
-    {
-      name: 'email',
-      error: false,
-      placeholder: 'e.g., alice1234@gmail.com',
-      helperText: '',
-    },
-    {
-      name: 'password',
-      error: false,
-      type: 'password',
-      helperText: '',
-    },
-  ]);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+  });
 
-    let isError = false;
-    const email = formData.get('email');
-    const password = formData.get('password');
+  const onSubmit = async (data) => {
+    try {
+      const response = await loginAPI(data);
 
-    const updatedFormInputs = [...formInputs];
+      // Store credentials in Redux
+      const { user, token } = response.data.data;
+      dispatch(setCredentials({ user, token, role: user.role }));
 
-    // validate email
-    if (!email) {
-      isError = true;
-      updatedFormInputs[0].error = true;
-      updatedFormInputs[0].helperText = 'Enter email';
-    } else {
-      if (!/^[\w.-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(email)) {
-        isError = true;
-        updatedFormInputs[0].error = true;
-        updatedFormInputs[0].helperText = 'Email format invalid';
+      navigate('/personal', { replace: true });
+    } catch (error) {
+      console.error('Login failed:', error);
+
+      // Handle backend validation errors
+      if (error.response?.data?.errors) {
+        error.response.data.errors.forEach((err) => {
+          setError(err.path, { message: err.message });
+        });
+      } else {
+        setError('username', {
+          message: error.response?.data?.message || 'Invalid username or password',
+        });
       }
     }
-
-    // validate password
-    if (!password) {
-      isError = true;
-      updatedFormInputs[1].error = true;
-      updatedFormInputs[1].helperText = 'Enter password';
-    }
-
-    if (isError) {
-      setFormInputs(updatedFormInputs);
-    } else {
-      // call login API
-      const payload = {
-        email,
-        password,
-      };
-      // example
-      fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error('Login failed');
-          return res.json();
-        })
-        .then((data) => {
-          localStorage.setItem('token', data.token);
-        })
-        .catch(console.error);
-    }
-  }
-
-  function handleChange(error, index) {
-    if (error) {
-      const updatedFormInputs = [...formInputs];
-      updatedFormInputs[index].error = false;
-      updatedFormInputs[index].helperText = '';
-      setFormInputs(updatedFormInputs);
-    }
-  }
+  };
 
   return (
     <FormLayout
@@ -90,22 +59,27 @@ function Login() {
     >
       <form
         style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmit(onSubmit)}
       >
-        {formInputs.map(({ name, error, placeholder, type, helperText }, index) => (
-          <TextInput
-            key={name}
-            name={name}
-            label={name[0].toUpperCase() + name.slice(1)}
-            placeholder={placeholder || ''}
-            type={type || 'text'}
-            error={error}
-            helperText={helperText}
-            onChange={() => handleChange(error, index)}
-          />
-        ))}
-
-        <PrimaryButton buttonDesc={'Login'} type={'submit'} />
+        <TextInput
+          {...register('username')}
+          label="Username"
+          placeholder="e.g., alice1234"
+          error={!!errors.username}
+          helperText={errors.username?.message}
+        />
+        <TextInput
+          {...register('password')}
+          label="Password"
+          type="password"
+          error={!!errors.password}
+          helperText={errors.password?.message}
+        />
+        <PrimaryButton
+          buttonDesc={isSubmitting ? 'Logging in...' : 'Login'}
+          type="submit"
+          disabled={isSubmitting}
+        />
       </form>
     </FormLayout>
   );
