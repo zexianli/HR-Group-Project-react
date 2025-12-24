@@ -13,8 +13,7 @@ import { styled } from '@mui/material/styles';
 import ReusableInputField from '../../components/form/ReusableInputField';
 import { Controller } from 'react-hook-form';
 import FormHelperText from '@mui/material/FormHelperText';
-import { useDispatch } from 'react-redux';
-import { setApplication } from '../../features/onboarding/onboardingSlice';
+import dayjs from 'dayjs';
 
 import { useState, useEffect } from 'react';
 
@@ -58,6 +57,15 @@ const onboardingPersonalInfoSchema = z
     }),
     ssn: z.string().regex(/^\d{9}$/, 'Must be exactly 9 digits'),
     gender: z.string().min(1, 'Please select a value'),
+    profilePicture: z
+      .instanceof(File)
+      .optional()
+      .nullable()
+      .refine((file) => !file || file.size <= 5 * 1024 * 1024, 'File must be less than 5MB')
+      .refine(
+        (file) => !file || ['image/png', 'image/jpeg'].includes(file.type),
+        'Only PNG and JPG allowed'
+      ),
     driverLicenseExist: z.boolean(),
     driverLicenseCopy: z.any().nullable(),
     driverLicenseNumber: z.string().optional(),
@@ -66,10 +74,15 @@ const onboardingPersonalInfoSchema = z
     carcolor: z.string().optional(),
     carmodel: z.string().optional(),
   })
-  .refine((data) => !data.driverLicenseExist || data.driverLicenseCopy, {
-    message: 'Upload your driver license copy',
-    path: ['driverLicenseCopy'],
-  })
+  .refine(
+    (data) => {
+      return !data.driverLicenseExist || data.driverLicenseCopy;
+    },
+    {
+      message: 'Upload your driver license copy',
+      path: ['driverLicenseCopy'],
+    }
+  )
   .refine(
     (data) => {
       if (!data.driverLicenseExist || /^[A-Z0-9]+$/.test(data.driverLicenseNumber)) {
@@ -87,16 +100,68 @@ const onboardingPersonalInfoSchema = z
     path: ['driverLicenseExpDate'],
   });
 
-function PersonalInfo({ prevNextHandler }) {
-  const dispatch = useDispatch();
+function storeFile(name, file, fileName) {
+  if (!file) {
+    localStorage.setItem(name, 'null');
+    localStorage.setItem(name + 'name', 'null');
+    return;
+  }
+  const reader = new FileReader();
 
+  reader.onload = function (event) {
+    // The result is the file data as a Base64 encoded string
+    const base64String = event.target.result;
+
+    // Store the string in localStorage with a key, e.g., 'storedFileData'
+    localStorage.setItem(name, base64String);
+    localStorage.setItem(name + 'name', fileName);
+  };
+
+  reader.onerror = function (error) {
+    console.error('Error reading file: ', error);
+  };
+
+  // Read the file as a Data URL (Base64 string)
+  reader.readAsDataURL(file);
+}
+
+function retrieveFile(name) {
+  // Get the stored Base64 string
+  const base64DataUrl = localStorage.getItem(name);
+
+  if (!base64DataUrl) {
+    return null;
+  }
+
+  if (base64DataUrl === 'null') {
+    return null;
+  }
+
+  const fileName = localStorage.getItem(name + 'name');
+  const [meta, base64] = base64DataUrl.split(',');
+  const mimeMatch = meta.match(/data:(.*?);base64/);
+
+  const mimeType = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return new File([bytes], fileName, { type: mimeType });
+}
+
+function PersonalInfo({ prevNextHandler }) {
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     control,
-    // formState: { errors, isSubmitting },
     formState: { errors },
   } = useForm({
     resolver: zodResolver(onboardingPersonalInfoSchema),
@@ -109,6 +174,7 @@ function PersonalInfo({ prevNextHandler }) {
       dateofbirth: null,
       ssn: '',
       gender: '',
+      profilePicture: null,
       driverLicenseExist: false,
       driverLicenseCopy: null,
       driverLicenseNumber: '',
@@ -119,22 +185,72 @@ function PersonalInfo({ prevNextHandler }) {
     },
   });
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    // get the data from local storage
+    const savedPersonalInformationData = localStorage.getItem('personalInformation');
+    const savedHasDriverLicense = localStorage.getItem('driverLicenseExist');
 
-  // profile picture
-  const [profilePictureCopy, setProfilePictureCopy] = useState(null);
+    // put the data into the form
+    if (savedPersonalInformationData) {
+      const personalInformationData = JSON.parse(savedPersonalInformationData);
+      const hasDriverLicense = savedHasDriverLicense === 'true';
+      const profilePicture = retrieveFile('profilePicture');
+      if (profilePicture) {
+        setProfilePictureCopyName(localStorage.getItem('profilePicturename'));
+      }
+
+      if (hasDriverLicense) {
+        const driverLicenseCopy = retrieveFile('driverLicenseCopy');
+        // populate form with driver license
+        reset({
+          firstname: personalInformationData.firstName,
+          lastname: personalInformationData.lastName,
+          middlename: personalInformationData.middleName,
+          preferredname: personalInformationData.preferredName,
+          ssn: personalInformationData.ssn,
+          gender: personalInformationData.gender,
+          email: personalInformationData.email,
+          dateofbirth: dayjs(personalInformationData.dateOfBirth),
+          profilePicture: profilePicture,
+          driverLicenseExist: true,
+          driverLicenseCopy: driverLicenseCopy,
+          driverLicenseNumber: personalInformationData.driverLicense.number,
+          driverLicenseExpDate: dayjs(personalInformationData.driverLicense.expirationDate),
+          carmake: personalInformationData.carInformation.make,
+          carmodel: personalInformationData.carInformation.model,
+          carcolor: personalInformationData.carInformation.color,
+        });
+        setDriverLicenseCopyName(localStorage.getItem('driverLicenseCopyname'));
+      } else {
+        // populate form without driver license
+        reset({
+          firstname: personalInformationData.firstName,
+          lastname: personalInformationData.lastName,
+          middlename: personalInformationData.middleName,
+          preferredname: personalInformationData.preferredName,
+          ssn: personalInformationData.ssn,
+          gender: personalInformationData.gender,
+          email: personalInformationData.email,
+          dateofbirth: dayjs(personalInformationData.dateOfBirth),
+          profilePicture: profilePicture,
+          driverLicenseCopy: null,
+        });
+      }
+    }
+    // set it as useForm default values
+  }, []);
+
+  // profile picture name
   const [profilePictureCopyName, setProfilePictureCopyName] = useState('');
-  // console.log(profilePictureCopy);
 
-  // driver license
+  // driver license name
   const driverLicenseExist = watch('driverLicenseExist');
   const [driverLicenseCopyName, setDriverLicenseCopyName] = useState('');
-  // console.log(driverLicenseCopy);
 
   prevNextHandler({
     onNext: async () => {
       let canGoNext = false;
-      const submit = handleSubmit((data) => {
+      const submit = handleSubmit(async (data) => {
         // store things in local storage
         let personalInfoData;
         if (!data.driverLicenseExist) {
@@ -148,9 +264,10 @@ function PersonalInfo({ prevNextHandler }) {
             dateOfBirth: data.dateofbirth.toDate().toISOString(),
             gender: data.gender,
             email: data.email,
-            profilePictureFile: profilePictureCopy,
           };
-          console.log(personalInfoData);
+          storeFile('profilePicture', data.profilePicture, profilePictureCopyName);
+          localStorage.removeItem('driverLicenseCopy');
+          localStorage.removeItem('driverLicenseCopyname');
         } else {
           // personal info with license
           personalInfoData = {
@@ -159,11 +276,9 @@ function PersonalInfo({ prevNextHandler }) {
             middleName: data.middlename,
             preferredName: data.preferredname,
             ssn: data.ssn,
-            dateOfBirth: data.dateofbirth.toDate(),
+            dateOfBirth: data.dateofbirth.toDate().toISOString(),
             gender: data.gender,
             email: data.email,
-            profilePictureFile: profilePictureCopy,
-            driverLicenseFile: data.driverLicenseCopy,
             driverLicense: {
               number: data.driverLicenseNumber,
               expirationDate: data.driverLicenseExpDate, // process this to be a Date() object
@@ -174,23 +289,22 @@ function PersonalInfo({ prevNextHandler }) {
               color: data.carcolor,
             },
           };
+          storeFile('profilePicture', data.profilePicture, profilePictureCopyName);
+          storeFile('driverLicenseCopy', data.driverLicenseCopy, driverLicenseCopyName);
         }
 
-        dispatch(setApplication({ personalInfoData }));
-        // console.log(personalInfoData);
-        // localStorage.setItem('driverLicenseExist', data.driverLicenseExist);
-        // localStorage.setItem('personalInformation', JSON.stringify(personalInfoData));
+        localStorage.setItem('personalInformation', JSON.stringify(personalInfoData));
+        localStorage.setItem('driverLicenseExist', data.driverLicenseExist.toString());
+
         canGoNext = true;
       });
       await submit();
       return canGoNext;
     },
     onPrev: () => {
-      // console.log('prev from Personal Info');
       return true;
     },
     onSubmit: () => {
-      // console.log('submit from Personal Info');
       return true;
     },
   });
@@ -323,8 +437,10 @@ function PersonalInfo({ prevNextHandler }) {
             <input
               type="file"
               hidden
+              accept="image/png,image/jpeg,image/jpg"
               onChange={(e) => {
-                setProfilePictureCopy(e.target.files[0]);
+                const file = e.target.files?.[0] || null;
+                setValue('profilePicture', file, { shouldValidate: true });
                 setProfilePictureCopyName(e.target.files[0].name);
               }}
             />
@@ -334,21 +450,21 @@ function PersonalInfo({ prevNextHandler }) {
         {/* Driver's license */}
         {/* Do you have a car, if yes show questions related to driver's license and car */}
         <FormGrid size={{ xs: 12 }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                name="driver-license"
-                onChange={() => {
-                  setDriverLicenseCopyName('');
-                  setValue('driverLicenseCopy', null, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                  });
-                }}
-                {...register('driverLicenseExist')}
+          <Controller
+            name="driverLicenseExist"
+            control={control}
+            render={({ field }) => (
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="driver-license"
+                    checked={field.value}
+                    {...register('driverLicenseExist')}
+                  />
+                }
+                label="I have a driver's license"
               />
-            }
-            label="I have a driver's license"
+            )}
           />
         </FormGrid>
         {driverLicenseExist && (
@@ -438,7 +554,6 @@ function PersonalInfo({ prevNextHandler }) {
           </>
         )}
       </Grid>
-      {/* <button type="submit">Submit</button> */}
     </form>
   );
 }
