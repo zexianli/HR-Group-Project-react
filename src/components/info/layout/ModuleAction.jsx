@@ -83,7 +83,6 @@ function Modal({ open, title, onClose, children }) {
         <div className="modal-header">
           <div>
             <div className="modal-title">{title}</div>
-            <div className="modal-sub">Preview</div>
           </div>
           <button className="btn-ghost" onClick={onClose}>
             Close
