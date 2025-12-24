@@ -11,8 +11,12 @@ import { MenuItem } from '@mui/material';
 import Checkbox from '@mui/material/Checkbox';
 import { styled } from '@mui/material/styles';
 import ReusableInputField from '../../components/form/ReusableInputField';
+import { Controller } from 'react-hook-form';
+import FormHelperText from '@mui/material/FormHelperText';
+import { useDispatch } from 'react-redux';
+import { setApplication } from '../../features/onboarding/onboardingSlice';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,49 +49,53 @@ const onboardingPersonalInfoSchema = z
         .max(12, 'Middle name can be at most 12 characters long')
         .regex(/^[A-Za-z]+$/, 'Only letters allowed'),
     ]),
+    preferredname: z.string().optional(),
+    email: z.string().optional(),
     // date of birth
-    dateofbirth: z
-      .any()
-      .refine((val) => val, { message: 'Please enter your date of birth', path: ['dateofbirth'] }),
+    dateofbirth: z.any().refine((val) => val !== null, {
+      message: 'Please enter your date of birth',
+      path: ['dateofbirth'],
+    }),
     ssn: z.string().regex(/^\d{9}$/, 'Must be exactly 9 digits'),
     gender: z.string().min(1, 'Please select a value'),
-    hasDriverLicense: z.boolean(),
+    driverLicenseExist: z.boolean(),
     driverLicenseCopy: z.any().nullable(),
     driverLicenseNumber: z.string().optional(),
     driverLicenseExpDate: z.any().nullable(),
+    carmake: z.string().optional(),
+    carcolor: z.string().optional(),
+    carmodel: z.string().optional(),
   })
-  .superRefine((data, ctx) => {
-    if (data.hasDriverLicense) {
-      if (!data.driverLicenseCopy) {
-        ctx.addIssue({
-          path: ['driverLicenseCopy'],
-          message: 'Driver license copy is required',
-          code: z.ZodIssueCode.custom,
-        });
+  .refine((data) => !data.driverLicenseExist || data.driverLicenseCopy, {
+    message: 'Upload your driver license copy',
+    path: ['driverLicenseCopy'],
+  })
+  .refine(
+    (data) => {
+      if (!data.driverLicenseExist || /^[A-Z0-9]+$/.test(data.driverLicenseNumber)) {
+        return true;
       }
-      if (!data.driverLicenseNumber) {
-        ctx.addIssue({
-          path: ['driverLicenseNumber'],
-          message: 'Driver license number is required',
-          code: z.ZodIssueCode.custom,
-        });
-      }
-      if (!data.driverLicenseExpDate) {
-        ctx.addIssue({
-          path: ['driverLicenseExpDate'],
-          message: 'Driver license expiration date is required',
-          code: z.ZodIssueCode.custom,
-        });
-      }
+      return false;
+    },
+    {
+      message: 'Enter your driver license number with the right format',
+      path: ['driverLicenseNumber'],
     }
+  )
+  .refine((data) => !data.driverLicenseExist || data.driverLicenseExpDate, {
+    message: 'Enter your driver license expiration date',
+    path: ['driverLicenseExpDate'],
   });
 
 function PersonalInfo({ prevNextHandler }) {
+  const dispatch = useDispatch();
+
   const {
     register,
     handleSubmit,
-    // setError,
-    // watch,
+    setValue,
+    watch,
+    control,
     // formState: { errors, isSubmitting },
     formState: { errors },
   } = useForm({
@@ -96,60 +104,99 @@ function PersonalInfo({ prevNextHandler }) {
       firstname: '',
       lastname: '',
       middlename: '',
+      preferredname: '',
+      email: 'abcd123@gmail.com', // get the default value from URL
       dateofbirth: null,
       ssn: '',
       gender: '',
-      hasDriverLicense: false,
+      driverLicenseExist: false,
       driverLicenseCopy: null,
       driverLicenseNumber: '',
       driverLicenseExpDate: null,
+      carmake: '',
+      carmodel: '',
+      carcolor: '',
     },
   });
 
-  prevNextHandler({
-    onNext: () => {
-      // console.log('ngentot');
-      // check everything
-      const submit = handleSubmit((data) => {
-        console.log(data);
-      });
-
-      submit();
-
-      // console.log('hello');
-      return false;
-    },
-    onPrev: () => {
-      console.log('prev from Personal Info');
-      return true;
-    },
-    onSubmit: () => {
-      console.log('submit from Personal Info');
-      return true;
-    },
-  });
-
-  // gender
-  const [gender, setGender] = useState('');
+  useEffect(() => {}, []);
 
   // profile picture
   const [profilePictureCopy, setProfilePictureCopy] = useState(null);
   const [profilePictureCopyName, setProfilePictureCopyName] = useState('');
-  console.log(profilePictureCopy);
+  // console.log(profilePictureCopy);
 
   // driver license
-  const [hasDriverLicense, setHasDriverLicense] = useState(false);
-  const [driverLicenseCopy, setDriverLicenseCopy] = useState(null);
+  const driverLicenseExist = watch('driverLicenseExist');
   const [driverLicenseCopyName, setDriverLicenseCopyName] = useState('');
-  console.log(driverLicenseCopy);
+  // console.log(driverLicenseCopy);
 
-  const onSubmit = async (data) => {
-    console.log(data);
-    console.log('Hello World');
-  };
+  prevNextHandler({
+    onNext: async () => {
+      let canGoNext = false;
+      const submit = handleSubmit((data) => {
+        // store things in local storage
+        let personalInfoData;
+        if (!data.driverLicenseExist) {
+          // personal info without license
+          personalInfoData = {
+            firstName: data.firstname,
+            lastName: data.lastname,
+            middleName: data.middlename,
+            preferredName: data.preferredname,
+            ssn: data.ssn,
+            dateOfBirth: data.dateofbirth.toDate().toISOString(),
+            gender: data.gender,
+            email: data.email,
+            profilePictureFile: profilePictureCopy,
+          };
+          console.log(personalInfoData);
+        } else {
+          // personal info with license
+          personalInfoData = {
+            firstName: data.firstname,
+            lastName: data.lastname,
+            middleName: data.middlename,
+            preferredName: data.preferredname,
+            ssn: data.ssn,
+            dateOfBirth: data.dateofbirth.toDate(),
+            gender: data.gender,
+            email: data.email,
+            profilePictureFile: profilePictureCopy,
+            driverLicenseFile: data.driverLicenseCopy,
+            driverLicense: {
+              number: data.driverLicenseNumber,
+              expirationDate: data.driverLicenseExpDate, // process this to be a Date() object
+            },
+            carInformation: {
+              make: data.carmake,
+              model: data.carmodel,
+              color: data.carcolor,
+            },
+          };
+        }
+
+        dispatch(setApplication({ personalInfoData }));
+        // console.log(personalInfoData);
+        // localStorage.setItem('driverLicenseExist', data.driverLicenseExist);
+        // localStorage.setItem('personalInformation', JSON.stringify(personalInfoData));
+        canGoNext = true;
+      });
+      await submit();
+      return canGoNext;
+    },
+    onPrev: () => {
+      // console.log('prev from Personal Info');
+      return true;
+    },
+    onSubmit: () => {
+      // console.log('submit from Personal Info');
+      return true;
+    },
+  });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form>
       <Grid container spacing={3}>
         {/* Name field: first name^, last name^, middle name, preferred name */}
         <ReusableInputField
@@ -191,6 +238,7 @@ function PersonalInfo({ prevNextHandler }) {
           label={'Preferred name'}
           placeholder="e.g, John"
           error={false}
+          {...register('preferredname')}
         />
         {/* Email, will be passed on */}
         <ReusableInputField
@@ -199,25 +247,35 @@ function PersonalInfo({ prevNextHandler }) {
           id="email"
           label="Email"
           placeholder="e.g, jwhite@gmail.com"
+          value="abcd1234@gmail.com"
           type="email"
           error={false}
           disabled
           required
+          {...register('email')}
         />
         {/* Date of birth^ */}
         <FormGrid size={{ xs: 12, md: 6 }}>
-          <FormLabel htmlFor="date-of-birth" required>
+          <FormLabel htmlFor="dateofbirth" required>
             Date of Birth
           </FormLabel>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DateField
-              id="dateofbirth"
+            <Controller
+              control={control}
               name="dateofbirth"
-              size="small"
-              onChange={(value) => {
-                console.log(value);
-              }}
-              required
+              render={({ field }) => (
+                <DateField
+                  {...field} // RHF provides value & onChange
+                  id="dateofbirth"
+                  error={!!errors.dateofbirth}
+                  helperText={
+                    errors.dateofbirth?.dateofbirth?.message ||
+                    errors.dateofbirth?.[0]?.message ||
+                    ''
+                  }
+                  size="small"
+                />
+              )}
             />
           </LocalizationProvider>
         </FormGrid>
@@ -238,23 +296,25 @@ function PersonalInfo({ prevNextHandler }) {
           <FormLabel htmlFor="gender" required>
             Gender
           </FormLabel>
-          <Select
-            id="gender"
+          <Controller
             name="gender"
-            value={gender}
-            onChange={(e) => {
-              setGender(e.target.value);
-            }}
-            displayEmpty
-            size="small"
-          >
-            <MenuItem value="" disabled>
-              Select gender
-            </MenuItem>
-            <MenuItem value={'Male'}>Male</MenuItem>
-            <MenuItem value={'Female'}>Female</MenuItem>
-            <MenuItem value={'No answer'}>I do not wish to answer</MenuItem>
-          </Select>
+            control={control}
+            render={({ field }) => (
+              <Select {...field} displayEmpty error={!!errors.gender} size="small">
+                <MenuItem value="" disabled>
+                  Select gender
+                </MenuItem>
+                <MenuItem value="Male">Male</MenuItem>
+                <MenuItem value="Female">Female</MenuItem>
+                <MenuItem value="I do not wish to answer">I do not wish to answer</MenuItem>
+              </Select>
+            )}
+          />
+          {!!errors.gender && (
+            <FormHelperText sx={{ color: '#d32f2f', paddingLeft: '14px' }}>
+              {errors.gender?.message}
+            </FormHelperText>
+          )}
         </FormGrid>
         {/* Profile Picture */}
         <FormGrid size={12}>
@@ -278,32 +338,43 @@ function PersonalInfo({ prevNextHandler }) {
             control={
               <Checkbox
                 name="driver-license"
-                checked={hasDriverLicense}
-                onChange={(e) => {
-                  setHasDriverLicense(e.target.checked);
-                  setDriverLicenseCopy(null);
+                onChange={() => {
                   setDriverLicenseCopyName('');
+                  setValue('driverLicenseCopy', null, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  });
                 }}
+                {...register('driverLicenseExist')}
               />
             }
             label="I have a driver's license"
           />
         </FormGrid>
-        {hasDriverLicense && (
+        {driverLicenseExist && (
           <>
             {/* Driver license copy */}
             <FormGrid size={12}>
               <Button variant="contained" component="label" sx={{ width: 'fit-content' }}>
                 Upload Driver License Copy (.PNG, .JPG)*
                 <input
+                  {...register('driverLicenseCopy')}
                   type="file"
                   hidden
                   onChange={(e) => {
-                    setDriverLicenseCopy(e.target.files[0]);
                     setDriverLicenseCopyName(e.target.files[0].name);
+                    setValue('driverLicenseCopy', e.target.files[0], {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
                   }}
                 />
               </Button>
+              {!!errors.driverLicenseCopy && (
+                <FormHelperText sx={{ color: '#d32f2f', paddingLeft: '14px' }}>
+                  {errors.driverLicenseCopy?.message}
+                </FormHelperText>
+              )}
               {driverLicenseCopyName}
             </FormGrid>
             {/* Driver's License Number, expiration date */}
@@ -318,12 +389,25 @@ function PersonalInfo({ prevNextHandler }) {
               {...register('driverLicenseNumber')}
               required
             />
+            {/* Driver license exp date */}
             <FormGrid size={{ xs: 12, md: 6 }}>
-              <FormLabel htmlFor="dl-exp-date" required>
+              <FormLabel htmlFor="driverLicenseExpDate" required>
                 Driver license expiration date
               </FormLabel>
               <LocalizationProvider dateAdapter={AdapterDayjs}>
-                <DateField id="dl-exp-date" name="dl-exp-date" size="small" required />
+                <Controller
+                  control={control}
+                  name="driverLicenseExpDate"
+                  render={({ field }) => (
+                    <DateField
+                      {...field} // RHF provides value & onChange
+                      id="driverLicenseExpDate"
+                      error={!!errors.driverLicenseExpDate}
+                      helperText={errors.driverLicenseExpDate?.message}
+                      size="small"
+                    />
+                  )}
+                />
               </LocalizationProvider>
             </FormGrid>
             {/* Car information: make, model, color */}
@@ -333,6 +417,7 @@ function PersonalInfo({ prevNextHandler }) {
               id="car-make"
               label="Car make"
               placeholder="e.g, Ford"
+              {...register('carmake')}
             />
             <ReusableInputField
               xs={12}
@@ -340,6 +425,7 @@ function PersonalInfo({ prevNextHandler }) {
               id="car-model"
               label="Car model"
               placeholder="e.g, Fusion Hybrid"
+              {...register('carmodel')}
             />
             <ReusableInputField
               xs={12}
@@ -347,10 +433,12 @@ function PersonalInfo({ prevNextHandler }) {
               id="car-color"
               label="Car color"
               placeholder="e.g, Silver"
+              {...register('carcolor')}
             />
           </>
         )}
       </Grid>
+      {/* <button type="submit">Submit</button> */}
     </form>
   );
 }

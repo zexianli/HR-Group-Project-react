@@ -45,16 +45,10 @@ function ReusableStepper({
             flexDirection: 'row-reverse',
             justifyContent: 'space-between',
             flexShrink: '0',
-            // backgroundColor: 'white',
-            // width: 'calc(100vw - 16px)',
-            // border: 'solid 1px #abcdcf',
-            // borderRadius: '10px',
-            // padding: '30px',
-            // boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1) ',
           }}
         >
           {currPageIndex !== pagesName.length - 1 ? (
-            <ReusableButton onClickMethod={handleNext}>Next</ReusableButton>
+            <ReusableButton onClickMethod={handleNext}>Save and Continue</ReusableButton>
           ) : (
             <ReusableButton onClickMethod={handleSubmit}>Submit</ReusableButton>
           )}

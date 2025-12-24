@@ -12,7 +12,15 @@ const onboardingSlice = createSlice({
   initialState,
   reducers: {
     setApplication(state, action) {
-      state.application = action.payload;
+      const { personalInfoData, workAuthData, addressContactData } = action.payload;
+      console.log(personalInfoData); // error when serializing file (profile picture)
+      console.log(workAuthData);
+      console.log(addressContactData);
+      state.application = {
+        personalInfoData,
+        workAuthData,
+        addressContactData,
+      };
     },
     setStatus(state, action) {
       state.status = action.payload;

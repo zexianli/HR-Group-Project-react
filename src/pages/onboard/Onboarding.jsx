@@ -32,8 +32,9 @@ function Onboarding() {
   const [currPageIndex, setCurrPageIndex] = useState(0);
 
   // functions
-  function handleNext() {
-    const canGoNext = prevNextHandlerRef.current?.onNext?.();
+  async function handleNext() {
+    const canGoNext = await prevNextHandlerRef.current?.onNext?.();
+    // console.log(canGoNext);
     if (canGoNext) {
       setCurrPageIndex((prev) => prev + 1);
     }
