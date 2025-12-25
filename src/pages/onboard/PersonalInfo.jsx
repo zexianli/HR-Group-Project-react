@@ -127,6 +127,7 @@ function PersonalInfo({ prevNextHandler }) {
       const submit = handleSubmit(async (data) => {
         // store things in local storage
         let personalInfoData;
+        console.log(data.profilePicture);
         if (!data.driverLicenseExist) {
           // personal info without license
           personalInfoData = {
@@ -139,6 +140,7 @@ function PersonalInfo({ prevNextHandler }) {
             gender: data.gender,
             email: data.email,
           };
+
           storeFile('profilePicture', data.profilePicture, profilePictureCopyName);
           localStorage.removeItem('driverLicenseCopy');
           localStorage.removeItem('driverLicenseCopyname');
@@ -176,9 +178,6 @@ function PersonalInfo({ prevNextHandler }) {
       return canGoNext;
     },
     onPrev: () => {
-      return true;
-    },
-    onSubmit: () => {
       return true;
     },
   });

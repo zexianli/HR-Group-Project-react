@@ -19,7 +19,7 @@ function Onboarding() {
       ui: <PersonalInfo prevNextHandler={(h) => (prevNextHandlerRef.current = h)} />,
     },
     {
-      name: 'Address and Contact',
+      name: 'Address and Contacts',
       ui: <AddressContact prevNextHandler={(h) => (prevNextHandlerRef.current = h)} />,
     },
     {
