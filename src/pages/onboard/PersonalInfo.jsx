@@ -287,7 +287,7 @@ function PersonalInfo({ prevNextHandler }) {
             name="gender"
             control={control}
             render={({ field }) => (
-              <Select {...field} displayEmpty error={!!errors.gender} size="small">
+              <Select {...field} displayEmpty defaultValue="" error={!!errors.gender} size="small">
                 <MenuItem value="" disabled>
                   Select gender
                 </MenuItem>
