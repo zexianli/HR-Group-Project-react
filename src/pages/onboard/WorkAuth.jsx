@@ -142,7 +142,7 @@ function WorkAuth({ prevNextHandler }) {
       <Grid container spacing={3}>
         <FormGrid size={12}>
           <FormControl>
-            <FormLabel id="us-person" htmlFor="us-person" error={!!errors.isUSPerson}>
+            <FormLabel id="us-person" htmlFor="us-person" error={!!errors.isUSPerson} required>
               Are you a considered a US person (citizen or permanent resident of the US)?
             </FormLabel>
             <Controller
@@ -209,6 +209,7 @@ function WorkAuth({ prevNextHandler }) {
                 fileVarName="usPersonDoc"
                 fileName={usPersonDoc && usPersonDoc.name}
                 error={errors.usPersonDoc}
+                required
               />
             )}
           </>
@@ -259,6 +260,7 @@ function WorkAuth({ prevNextHandler }) {
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
+                  required
                 />
               </>
             )}
@@ -271,6 +273,7 @@ function WorkAuth({ prevNextHandler }) {
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
+                  required
                 />
               </>
             )}
@@ -283,6 +286,7 @@ function WorkAuth({ prevNextHandler }) {
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
+                  required
                 />
                 {/* upload receipt */}
                 <ReusableFileInput
@@ -291,6 +295,7 @@ function WorkAuth({ prevNextHandler }) {
                   fileVarName="optReceipt"
                   fileName={optReceipt && optReceipt.name}
                   error={errors.optReceipt}
+                  required
                 />
               </>
             )}
@@ -303,6 +308,7 @@ function WorkAuth({ prevNextHandler }) {
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
+                  required
                 />
               </>
             )}
@@ -329,6 +335,7 @@ function WorkAuth({ prevNextHandler }) {
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
+                  required
                 />
               </>
             )}

@@ -7,12 +7,19 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function ReusableFileInput({ labelContent, handleUploadingFile, fileVarName, fileName, error }) {
+function ReusableFileInput({
+  labelContent,
+  handleUploadingFile,
+  fileVarName,
+  fileName,
+  error,
+  required,
+}) {
   return (
     <>
       <FormGrid size={12}>
         <Button variant="contained" component="label" sx={{ width: 'fit-content' }}>
-          {labelContent}
+          {`${labelContent}${required && '*'}`}
           <input
             type="file"
             hidden
