@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+/* eslint-disable */
+import { useState, useMemo, useEffect } from 'react';
 import '../../components/info/styles.css';
 import Navbar from '../../components/navbar/OnboardNavBar';
 import SectionCard from '../../components/info/layout/SectionCard';
 import { FieldRow, TextInput, Modal } from '../../components/info/layout/ModuleAction';
-import { housingData, initialReports } from '../../assets/data/housing-info';
 
 /**
  * HousingPage
@@ -20,7 +20,8 @@ function PageShell({ children }) {
 }
 
 export default function HousingPage() {
-  const [reports, setReports] = useState(initialReports);
+  const [housing, setHousing] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [editingReports, setEditingReports] = useState(false);
   const [newReport, setNewReport] = useState({
     title: '',
@@ -30,9 +31,32 @@ export default function HousingPage() {
   const [previewReport, setPreviewReport] = useState(null);
   const [previewComment, setPreviewComment] = useState('');
 
-  const reportCount = useMemo(() => reports.length, [reports]);
-
   /* ---------------- Handlers ---------------- */
+  useEffect(() => {
+    async function fetchHousing() {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/housing/me`, {
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_API_MOCK_TOKEN}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Failed: ${res.status}`);
+        }
+
+        const response = await res.json();
+        setHousing(response.data);
+        console.log(response.data);
+      } catch (err) {
+        console.error('Housing fetch failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchHousing();
+  }, []);
 
   const submitReport = () => {
     if (!newReport.title || !newReport.description) return;
@@ -98,28 +122,27 @@ export default function HousingPage() {
         {/* ================= HOUSE DETAILS ================= */}
         <SectionCard title="House Details" canEdit={false}>
           <div className="stack row-2">
-            <FieldRow label="Building / Apt">
-              <TextInput disabled value={housingData.address.apt} />
+            <FieldRow label="City">
+              <TextInput disabled value={housing?.house?.address?.city || ''} />
             </FieldRow>
-
-            <FieldRow label="Street">
-              <TextInput disabled value={housingData.address.street} />
+            <FieldRow label="State">
+              <TextInput disabled value={housing?.house?.address?.state || ''} />
             </FieldRow>
           </div>
 
           <div className="stack row-2">
-            <FieldRow label="City">
-              <TextInput disabled value={housingData.address.city} />
+            <FieldRow label="Street">
+              <TextInput disabled value={housing?.house?.address?.street || ''} />
             </FieldRow>
 
-            <FieldRow label="State">
-              <TextInput disabled value={housingData.address.state} />
+            <FieldRow label="Unit">
+              <TextInput disabled value={housing?.house?.address?.unit || ''} />
             </FieldRow>
           </div>
 
           <div className="stack row-2">
             <FieldRow label="Zip">
-              <TextInput disabled value={housingData.address.zip} />
+              <TextInput disabled value={housing?.house?.address?.zip || ''} />
             </FieldRow>
             <div />
           </div>
@@ -128,10 +151,13 @@ export default function HousingPage() {
 
           <h3 className="h3">Roommates</h3>
 
-          {housingData.roommates.map((r, idx) => (
+          {housing?.roommates?.map((r, idx) => (
             <div key={idx} className="stack row-2">
-              <FieldRow label="Name">
-                <TextInput disabled value={r.name} />
+              <FieldRow label="First Name">
+                <TextInput disabled value={r.firstName} />
+              </FieldRow>
+              <FieldRow label="Last Name">
+                <TextInput disabled value={r.lastName} />
               </FieldRow>
               <FieldRow label="Phone">
                 <TextInput disabled value={r.phone} />
@@ -141,7 +167,7 @@ export default function HousingPage() {
         </SectionCard>
 
         {/* ================= MY REPORTS ================= */}
-        <SectionCard
+        {/* <SectionCard
           title={`My Facility Reports (${reportCount})`}
           canEdit={true}
           isEditing={editingReports}
@@ -186,7 +212,7 @@ export default function HousingPage() {
               + Add Facility Report
             </button>
           )}
-        </SectionCard>
+        </SectionCard> */}
         <Modal
           open={showAddForm}
           title="Create Facility Report"
