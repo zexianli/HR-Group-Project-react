@@ -4,6 +4,8 @@ import Home from './pages/Home';
 import Fail from './pages/auth/Fail';
 import Login from './pages/auth/Login';
 import PersonalInformation from './pages/info/PersonalInformation';
+import VisaStatusManagementPage from './pages/info/VisaStatusManagement';
+import HousingPage from './pages/info/HousingPage';
 
 function AppRoutes() {
   return (
@@ -13,6 +15,8 @@ function AppRoutes() {
       <Route path="register/expired" element={<Fail />} />
       <Route path="login" element={<Login />} />
       <Route path="personal" element={<PersonalInformation />} />
+      <Route path="visa" element={<VisaStatusManagementPage />} />
+      <Route path="housing" element={<HousingPage />} />
     </Routes>
   );
 }
