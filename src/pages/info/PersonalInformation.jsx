@@ -1,5 +1,4 @@
-/* eslint-disable */
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../../components/info/styles.css';
 import Navbar from '../../components/navbar/OnboardNavBar';
 import SectionCard from '../../components/info/layout/SectionCard';
@@ -17,6 +16,10 @@ import FALLBACK_AVATAR from '../../assets/data/fallback-avatar';
 import { initialProfile } from '../../assets/data/personal-info';
 import '../../components/info/styles.css';
 import { getEmployeeProfile, updateEmployeeProfile } from '../../api/employeeInfomation';
+import {
+  mapEmployeeProfileToInitialProfile,
+  mapInitialProfileToEmployeePayload,
+} from '../../api/convertFormat';
 
 /**
  * PersonalInformationPage
@@ -79,12 +82,27 @@ export default function PersonalInformationPage() {
     setEditing((prev) => ({ ...prev, [sectionKey]: false }));
   };
 
-  const saveEdit = (sectionKey) => {
-    setSaved((prev) => ({
-      ...prev,
-      [sectionKey]: deepClone(draft[sectionKey]),
-    }));
-    setEditing((prev) => ({ ...prev, [sectionKey]: false }));
+  const saveEdit = async (sectionKey) => {
+    try {
+      // 1️⃣ Build the next saved profile (merge section)
+      const nextProfile = {
+        ...saved,
+        [sectionKey]: deepClone(draft[sectionKey]),
+      };
+
+      // 2️⃣ Convert to backend payload
+      const payload = mapInitialProfileToEmployeePayload(nextProfile);
+
+      // 3️⃣ Send to backend
+      await updateEmployeeProfile(payload);
+
+      // 4️⃣ Commit locally ONLY after success
+      setSaved(nextProfile);
+      setEditing((prev) => ({ ...prev, [sectionKey]: false }));
+    } catch (err) {
+      console.error('Failed to save profile', err);
+      alert('Failed to save changes. Please try again.');
+    }
   };
 
   const updateDraftField = (sectionKey, field, value) => {
@@ -98,6 +116,11 @@ export default function PersonalInformationPage() {
   };
 
   /* ---------------- avatar logic ---------------- */
+  async function loadAvatarOnly() {
+    const response = await previewDocuments('profile_picture');
+    return response || null;
+  }
+
   async function loadAvatar() {
     const response = await previewDocuments('profile_picture');
     if (!response) return;
@@ -119,6 +142,28 @@ export default function PersonalInformationPage() {
     }));
   }
 
+  async function loadDocumentsOnly() {
+    const results = await Promise.all(
+      DOCUMENT_TYPES.map(async (type) => {
+        const url = await previewDocuments(type);
+        if (!url) return [type, null];
+
+        return [
+          type,
+          {
+            id: `${type}-${Date.now()}`,
+            filename: type.replace('_', ' ').toUpperCase(),
+            url,
+            mime: url.endsWith('.pdf') ? 'application/pdf' : 'image/*',
+            uploadedAt: new Date().toISOString().slice(0, 10),
+            type,
+          },
+        ];
+      })
+    );
+    return Object.fromEntries(results);
+  }
+
   const handleAvatarUpload = async (file) => {
     if (!file) return;
     const response = await uploadDocuments(file, 'profile_picture');
@@ -126,48 +171,6 @@ export default function PersonalInformationPage() {
     updateDraftField('name', 'profilePictureUrl', response);
     loadAvatar();
   };
-
-  useEffect(() => {
-    loadAvatar();
-  }, []);
-
-  useEffect(() => {
-    async function loadDocuments() {
-      const results = await Promise.all(
-        DOCUMENT_TYPES.map(async (type) => {
-          const url = await previewDocuments(type);
-          if (!url) return [type, null];
-
-          return [
-            type,
-            {
-              id: `${type}-${Date.now()}`,
-              filename: type.replace('_', ' ').toUpperCase(),
-              url,
-              mime: url.endsWith('.pdf') ? 'application/pdf' : 'image/*',
-              uploadedAt: new Date().toISOString().slice(0, 10),
-              type,
-            },
-          ];
-        })
-      );
-
-      const docsMap = Object.fromEntries(results);
-      console.log(docsMap);
-
-      setSaved((prev) => ({
-        ...prev,
-        documents: docsMap,
-      }));
-
-      setDraft((prev) => ({
-        ...prev,
-        documents: docsMap,
-      }));
-    }
-
-    loadDocuments();
-  }, []);
 
   useEffect(() => {
     if (!previewDocType) return;
@@ -185,6 +188,55 @@ export default function PersonalInformationPage() {
 
     loadPreviewDoc();
   }, [previewDocType]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function initProfile() {
+      try {
+        // 1️⃣ Fetch base profile FIRST
+        const res = await getEmployeeProfile();
+        const backendProfile = res?.employeeProfile;
+        console.log('backendProfile', backendProfile);
+        if (!backendProfile) throw new Error('Employee profile not found');
+
+        let profile = mapEmployeeProfileToInitialProfile(backendProfile);
+
+        // 2️⃣ Load avatar
+        const avatarUrl = await loadAvatarOnly();
+        if (avatarUrl) {
+          profile = {
+            ...profile,
+            name: {
+              ...profile.name,
+              profilePictureUrl: avatarUrl,
+            },
+          };
+        }
+
+        // 3️⃣ Load documents
+        const docsMap = await loadDocumentsOnly();
+        profile = {
+          ...profile,
+          documents: docsMap,
+        };
+
+        // 4️⃣ Single state commit (NO RACES)
+        if (mounted) {
+          setSaved(profile);
+          setDraft(profile);
+        }
+      } catch (err) {
+        console.error('Failed to initialize profile', err);
+      }
+    }
+
+    initProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <>
@@ -275,7 +327,7 @@ export default function PersonalInformationPage() {
               </FieldRow>
 
               <FieldRow label="Date of birth">
-                <DateInput
+                <TextInput
                   disabled={!editing.name}
                   value={draft.name.dob}
                   onChange={(v) => updateDraftField('name', 'dob', v)}
@@ -283,17 +335,10 @@ export default function PersonalInformationPage() {
               </FieldRow>
 
               <FieldRow label="Gender">
-                <Select
+                <TextInput
                   disabled={!editing.name}
                   value={draft.name.gender}
                   onChange={(v) => updateDraftField('name', 'gender', v)}
-                  options={[
-                    { value: '', label: 'Select...' },
-                    { value: 'Male', label: 'Male' },
-                    { value: 'Female', label: 'Female' },
-                    { value: 'Non-binary', label: 'Non-binary' },
-                    { value: 'Prefer not to say', label: 'Prefer not to say' },
-                  ]}
                 />
               </FieldRow>
             </div>
@@ -369,7 +414,7 @@ export default function PersonalInformationPage() {
               <TextInput
                 disabled={!editing.contact}
                 value={draft.contact.cellPhone}
-                onChange={(v) => updateDraftField('address', 'cellPhone', v)}
+                onChange={(v) => updateDraftField('contact', 'cellPhone', v)}
               />
             </FieldRow>
 
@@ -377,7 +422,7 @@ export default function PersonalInformationPage() {
               <TextInput
                 disabled={!editing.contact}
                 value={draft.contact.workPhone}
-                onChange={(v) => updateDraftField('address', 'workPhone', v)}
+                onChange={(v) => updateDraftField('contact', 'workPhone', v)}
               />
             </FieldRow>
           </div>
@@ -405,7 +450,7 @@ export default function PersonalInformationPage() {
 
           <div className="stack row-2">
             <FieldRow label="Start Date">
-              <DateInput
+              <TextInput
                 disabled={!editing.employment}
                 value={draft.employment.startDate}
                 onChange={(v) => updateDraftField('employment', 'startDate', v)}
@@ -413,7 +458,7 @@ export default function PersonalInformationPage() {
             </FieldRow>
 
             <FieldRow label="End Date">
-              <DateInput
+              <TextInput
                 disabled={!editing.employment}
                 value={draft.employment.endDate}
                 onChange={(v) => updateDraftField('employment', 'endDate', v)}
@@ -501,8 +546,6 @@ export default function PersonalInformationPage() {
                   <button
                     className="btn-ghost"
                     onClick={() => {
-                      console.log('Preview clicked, doc =', doc);
-                      console.log('doc.type =', doc.type);
                       setPreviewDocType(doc.type);
                     }}
                   >
