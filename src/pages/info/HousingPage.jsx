@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import '../../components/info/styles.css';
 import Navbar from '../../components/navbar/OnboardNavBar';
 import SectionCard from '../../components/info/layout/SectionCard';
@@ -255,7 +255,7 @@ export default function HousingPage() {
               onClick={() => setShowAddForm(true)}
               style={{ marginBottom: 12 }}
             >
-              + Add Facility Report
+              Add Facility Report
             </button>
           )}
         </SectionCard>
