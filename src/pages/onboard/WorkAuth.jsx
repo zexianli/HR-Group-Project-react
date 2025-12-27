@@ -18,10 +18,15 @@ import RadioGroup from '@mui/material/RadioGroup';
 import FormControl from '@mui/material/FormControl';
 import ReusableFileInput from '../../components/form/ReusableFileInput';
 
-import { useEffect } from 'react';
-
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import {
+  submitOnboarding,
+  uploadFile,
+  uploadOPTFile,
+} from '../../features/onboarding/onboardingAPI';
+import { retrieveFile } from '../../utilities/fileParser';
+import { useNavigate } from 'react-router';
 // import { useDispatch } from 'react-redux';
 
 const FormGrid = styled(Grid)(() => ({
@@ -30,12 +35,13 @@ const FormGrid = styled(Grid)(() => ({
 }));
 
 function WorkAuth({ prevNextHandler }) {
+  const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    // reset,
     control,
     clearErrors,
     formState: { errors },
@@ -47,16 +53,11 @@ function WorkAuth({ prevNextHandler }) {
       usPersonDoc: null,
       notUSPersonWorkAuth: '',
       notUSPersonWorkAuthDoc: null,
-      optReceipt: null,
       otherWorkAuthVisaTitle: '',
       workAuthStartDate: null,
       workAuthEndDate: null,
     },
   });
-
-  useEffect(() => {
-    console.log(errors);
-  }, [errors]);
 
   prevNextHandler({
     onNext: () => {
@@ -68,9 +69,177 @@ function WorkAuth({ prevNextHandler }) {
     onSubmit: async () => {
       // compile PersonalInfo and AddressContact into one along with WorkAuth
       let canSubmit = false;
-      const submit = handleSubmit((data) => {
+      const submit = handleSubmit(async (data) => {
+        const savedPersonalInformationData = localStorage.getItem('personalInformation');
+        const savedAddressContactData = localStorage.getItem('addressContact');
+        if (savedPersonalInformationData && savedAddressContactData) {
+          const personalInformation = JSON.parse(savedPersonalInformationData);
+          const addressContact = JSON.parse(savedAddressContactData);
+          const { ...personalInformationRest } = personalInformation;
+          const {
+            buildingApt,
+            state,
+            city,
+            zip,
+            street,
+            referenceFirstName,
+            referenceLastName,
+            referenceMiddleName,
+            referencePhone,
+            referenceEmail,
+            referenceRelationship,
+            emergencyContacts,
+            ...addressContactRest
+          } = addressContact;
+
+          const reformedPersonalInformation = {
+            ...personalInformationRest,
+            ssn:
+              personalInformation.ssn.slice(0, 3) +
+              '-' +
+              personalInformation.ssn.slice(3, 5) +
+              '-' +
+              personalInformation.ssn.slice(5),
+          };
+          const reformedAddressContact = {
+            ...addressContactRest,
+            reference: {
+              firstName: referenceFirstName,
+              lastName: referenceLastName,
+              middleName: referenceMiddleName,
+              phone: referencePhone,
+              email: referenceEmail,
+              relationship: referenceRelationship,
+            },
+            address: {
+              buildingApt,
+              state,
+              city,
+              zip,
+              street,
+            },
+            emergencyContacts: emergencyContacts.map(({ id, ...rest }) => {
+              console.log(id);
+              return rest;
+            }),
+          };
+          // console.log('personal info', reformedPersonalInformation);
+          // console.log('address contact', addressContact);
+          // console.log('work auth', data);
+          const workAuth = {
+            ...data,
+            workAuthEndDate:
+              data.workAuthEndDate && data.workAuthEndDate.toDate().toISOString().slice(0, 10),
+            workAuthStartDate:
+              data.workAuthStartDate && data.workAuthStartDate.toDate().toISOString().slice(0, 10),
+          };
+          const {
+            notUSPersonWorkAuth,
+            usPersonStatus,
+            otherWorkAuthVisaTitle,
+            workAuthEndDate,
+            workAuthStartDate,
+            notUSPersonWorkAuthDoc,
+            usPersonDoc,
+            isUSPerson,
+            ...workAuthRest
+          } = workAuth;
+          console.log(isUSPerson);
+          const newNotUSPersonWorkAuth =
+            notUSPersonWorkAuth === 'F1(CPT/OPT)'
+              ? 'F1_CPT_OPT'
+              : notUSPersonWorkAuth.toUpperCase();
+          const newUSPersonStatus =
+            usPersonStatus === 'Permanent Resident' ? 'GREEN_CARD' : usPersonStatus.toUpperCase();
+          const workAuthorizationType = newNotUSPersonWorkAuth || newUSPersonStatus;
+
+          // call the API to submit onboard
+          // navigate to a page for
+          try {
+            // make sure the token is valid
+            // if not, go to login
+            // // call the submitOnboarding API
+
+            const token = localStorage.getItem('token');
+
+            const profilePicture = retrieveFile('profilePicture');
+            const driverLicenseCopy = retrieveFile('driverLicenseCopy');
+
+            // personal picture file upload
+            const ppFormData = new FormData();
+            ppFormData.append('docType', 'profile_picture');
+            ppFormData.append('file', profilePicture);
+
+            const postPPResponse = await uploadFile(ppFormData, token);
+
+            // driver license file upload
+            const dlFormData = new FormData();
+            dlFormData.append('docType', 'driver_license');
+            dlFormData.append('file', driverLicenseCopy);
+
+            const postDLResponse = await uploadFile(dlFormData, token);
+
+            // wrok auth file upload
+            const waFormData = new FormData();
+            const workAuthType =
+              workAuthorizationType === 'F1_CPT_OPT'
+                ? 'opt_receipt'
+                : workAuthorizationType.toLowerCase();
+            waFormData.append('docType', workAuthType);
+            waFormData.append('file', notUSPersonWorkAuthDoc || usPersonDoc);
+
+            // console.log(workAuthType);
+            // console.log(notUSPersonWorkAuthDoc || usPersonDoc);
+            const postWAResponse =
+              workAuthType === 'opt_receipt'
+                ? await uploadOPTFile(waFormData, token)
+                : await uploadFile(waFormData, token);
+
+            console.log('upload profile picture', postPPResponse);
+            console.log('upload driver license', postDLResponse);
+            console.log('upload work auth', postWAResponse);
+
+            const onboardingData = {
+              ...reformedPersonalInformation,
+              ...reformedAddressContact,
+              ...workAuthRest,
+              gender: personalInformation.gender.toUpperCase(),
+              workAuthorizationType,
+              otherWorkAuthorizationTitle: otherWorkAuthVisaTitle,
+              workAuthorizationStart: workAuthStartDate,
+              workAuthorizationEnd: workAuthEndDate,
+            };
+
+            console.log(onboardingData);
+            const submitOnboardingResponse = await submitOnboarding(onboardingData, token);
+            console.log('submit onboarding', submitOnboardingResponse);
+            // navigate to onboard pending
+            navigate('/onboard/finish', { state: { fromOnboarding: true }, replace: true });
+
+            // remove every onboarding related things from the local storage
+            localStorage.removeItem('personalInformation');
+            localStorage.removeItem('profilePicture');
+            localStorage.removeItem('profilePicturename');
+            localStorage.removeItem('driverLicenseExist');
+            localStorage.removeItem('driverLicenseCopy');
+            localStorage.removeItem('driverLicenseCopyname');
+            localStorage.removeItem('addressContact');
+            localStorage.removeItem('referenceExist');
+          } catch (error) {
+            // token expired, need to login again
+            if (
+              error.response.data.message === 'Invalid or expired token' &&
+              error.response.status === 401
+            ) {
+              navigate('/login', { replace: true });
+            }
+          }
+        }
+        // else {
+        //   // tell them personal info and address contact has issues (this might be becaus ethe user malformed things in local storage)
+        // }
+
         canSubmit = true;
-        console.log(data);
       });
       await submit();
       return canSubmit;
@@ -84,8 +253,6 @@ function WorkAuth({ prevNextHandler }) {
   // work auth
   const notUSPersonWorkAuth = watch('notUSPersonWorkAuth');
   const notUSPersonWorkAuthDoc = watch('notUSPersonWorkAuthDoc');
-  // opt receipt
-  const optReceipt = watch('optReceipt');
 
   function handleChangeIsUSPerson(e) {
     // resetting things in no opt, when saying yes
@@ -97,8 +264,9 @@ function WorkAuth({ prevNextHandler }) {
       setValue('notUSPersonWorkAuth', '');
       clearErrors('notUSPersonWorkAuth');
       setValue('notUSPersonWorkAuthDoc', null);
-      setValue('optReceipt', null);
+      clearErrors('notUSPersonWorkAuthDoc');
       setValue('otherWorkAuthVisaTitle', '');
+      clearErrors('otherWorkAuthVisaTitle');
     }
 
     if (value === 'no') {
@@ -125,11 +293,6 @@ function WorkAuth({ prevNextHandler }) {
     clearErrors('workAuthStartDate');
     setValue('workAuthEndDate', null);
     clearErrors('workAuthEndDate');
-
-    if (value === 'F1(CPT/OPT)') {
-      setValue('optReceipt', null);
-      clearErrors('optReceipt');
-    }
 
     if (value === 'Other') {
       setValue('otherWorkAuthVisaTitle', '');
@@ -187,6 +350,14 @@ function WorkAuth({ prevNextHandler }) {
                     defaultValue=""
                     error={!!errors.usPersonStatus}
                     size="small"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setValue('usPersonStatus', value);
+                      clearErrors('usPersonStatus');
+
+                      setValue('usPersonDoc', null);
+                      clearErrors('usPersonDoc');
+                    }}
                   >
                     <MenuItem value="" disabled>
                       Select status
@@ -204,8 +375,10 @@ function WorkAuth({ prevNextHandler }) {
             </FormGrid>
             {usPersonStatus && (
               <ReusableFileInput
-                labelContent={`Upload ${usPersonStatus} Document`}
+                labelContent={`Upload ${usPersonStatus} Document (.PDF, .JPG, .PNG)`}
                 handleUploadingFile={handleUploadingFile}
+                accept="image/png,image/jpeg,image/jpg,application/pdf"
+                file={usPersonDoc}
                 fileVarName="usPersonDoc"
                 fileName={usPersonDoc && usPersonDoc.name}
                 error={errors.usPersonDoc}
@@ -237,7 +410,7 @@ function WorkAuth({ prevNextHandler }) {
                     <MenuItem value="" disabled>
                       Select work authorization
                     </MenuItem>
-                    <MenuItem value="H1-B">H1-B</MenuItem>
+                    <MenuItem value="H1B">H1B</MenuItem>
                     <MenuItem value="L2">L2</MenuItem>
                     <MenuItem value="F1(CPT/OPT)">F1(CPT/OPT)</MenuItem>
                     <MenuItem value="H4">H4</MenuItem>
@@ -251,12 +424,14 @@ function WorkAuth({ prevNextHandler }) {
                 </FormHelperText>
               )}
             </FormGrid>
-            {notUSPersonWorkAuth === 'H1-B' && (
+            {notUSPersonWorkAuth === 'H1B' && (
               <>
-                {/* upload document of H1-B */}
+                {/* upload document of H1B */}
                 <ReusableFileInput
-                  labelContent={`Upload Your H1-B Document`}
+                  labelContent={`Upload Your H1B Document (.PDF)`}
                   handleUploadingFile={handleUploadingFile}
+                  accept="application/pdf"
+                  file={notUSPersonWorkAuthDoc}
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
@@ -268,8 +443,10 @@ function WorkAuth({ prevNextHandler }) {
               <>
                 {/* upload document of L2 */}
                 <ReusableFileInput
-                  labelContent={`Upload Your L2 Document`}
+                  labelContent={`Upload Your L2 Document (.PDF)`}
                   handleUploadingFile={handleUploadingFile}
+                  accept="application/pdf"
+                  file={notUSPersonWorkAuthDoc}
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
@@ -281,30 +458,25 @@ function WorkAuth({ prevNextHandler }) {
               <>
                 {/* upload document of F1(CPT/OPT) */}
                 <ReusableFileInput
-                  labelContent={`Upload Your F1(CPT/OPT) Document`}
+                  labelContent={`Upload Your F1(CPT/OPT) Receipt (.PDF)`}
                   handleUploadingFile={handleUploadingFile}
+                  accept="application/pdf"
+                  file={notUSPersonWorkAuthDoc}
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
-                  required
-                />
-                {/* upload receipt */}
-                <ReusableFileInput
-                  labelContent={`Upload Your F1(CPT/OPT) receipt`}
-                  handleUploadingFile={handleUploadingFile}
-                  fileVarName="optReceipt"
-                  fileName={optReceipt && optReceipt.name}
-                  error={errors.optReceipt}
                   required
                 />
               </>
             )}
             {notUSPersonWorkAuth === 'H4' && (
               <>
-                {/* upload document of H1-B */}
+                {/* upload document of H4 */}
                 <ReusableFileInput
-                  labelContent={`Upload Your H4 Document`}
+                  labelContent={`Upload Your H4 Document (.PDF)`}
                   handleUploadingFile={handleUploadingFile}
+                  accept="application/pdf"
+                  file={notUSPersonWorkAuthDoc}
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
@@ -330,8 +502,10 @@ function WorkAuth({ prevNextHandler }) {
                 </FormGrid>
                 {/* upload document of the Visa */}
                 <ReusableFileInput
-                  labelContent={`Upload Your H4 Document`}
+                  labelContent={`Upload Your Visa Document(.PDF)`}
                   handleUploadingFile={handleUploadingFile}
+                  accept="application/pdf"
+                  file={notUSPersonWorkAuthDoc}
                   fileVarName="notUSPersonWorkAuthDoc"
                   fileName={notUSPersonWorkAuthDoc && notUSPersonWorkAuthDoc.name}
                   error={errors.notUSPersonWorkAuthDoc}
@@ -365,7 +539,7 @@ function WorkAuth({ prevNextHandler }) {
                 {/* end date */}
                 <FormGrid size={{ xs: 12, md: 6 }}>
                   <FormLabel htmlFor="workAuthEndDate" required>
-                    Date of Birth
+                    End Date
                   </FormLabel>
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
                     <Controller

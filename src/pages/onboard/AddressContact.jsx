@@ -70,10 +70,23 @@ function AddressContact({ prevNextHandler }) {
     if (savedAddressContactData) {
       const addressContactData = JSON.parse(savedAddressContactData);
       const hasReference = savedHasReference === 'true';
-      reset({
-        ...addressContactData,
-        referenceExist: hasReference,
-      });
+      if (hasReference) {
+        reset({
+          ...addressContactData,
+          referenceExist: hasReference,
+        });
+      } else {
+        reset({
+          ...addressContactData,
+          referenceFirstName: '',
+          referenceLastName: '',
+          referenceMiddleName: '',
+          referencePhone: '',
+          referenceEmail: '',
+          referenceRelationship: '',
+          referenceExist: hasReference,
+        });
+      }
     }
   }, []);
 
@@ -97,9 +110,9 @@ function AddressContact({ prevNextHandler }) {
     },
   });
 
-  useEffect(() => {
-    console.log(errors);
-  }, [errors]);
+  // useEffect(() => {
+  //   console.log(errors);
+  // }, [errors]);
 
   const referenceExistValue = watch('referenceExist');
   const [emergencyContactId, setEmergencyContactId] = useState(0);

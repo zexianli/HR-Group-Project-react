@@ -3,9 +3,11 @@ import PersonalInfo from './PersonalInfo';
 import AddressContact from './AddressContact';
 import WorkAuth from './WorkAuth';
 import { Box } from '@mui/material';
-import { useState, useRef } from 'react';
-import { decodeString } from '../../utilities/decode';
-import { useLocation } from 'react-router';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router';
+import { useSelector } from 'react-redux';
+import { fetchOnboarding } from '../../features/onboarding/onboardingAPI';
+// import { userOnboardNav } from '../../utilities/navigation';
 
 function Onboarding() {
   // a stepper
@@ -14,22 +16,49 @@ function Onboarding() {
   // second page -> HP-34
   // third page -> HP-35
   // fourth page -> confirming page
+  const navigate = useNavigate();
+  const { token, user } = useSelector((state) => state.auth);
+  // console.log('hello');
 
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const encodedEmail = queryParams.get('email') || '';
-  const decodedEmail = encodedEmail ? decodeString(encodedEmail) : '';
+  useEffect(() => {
+    // console.log(token);
+    const fetchAPI = async () => {
+      try {
+        const response = await fetchOnboarding(token);
+
+        // REJECTED -> /onboarding/rejected
+        // if (response.data.onboarding.status === 'REJECTED') {
+        //   navigate('/onboarding/rejected', { replace: true });
+        // }
+
+        // // PENDING -> /onboarding/pending
+        // if (response.data.onboarding.status === 'PENDING') {
+        //   navigate('/onboarding/pending', { replace: true });
+        // }
+        // APPROVED -> /personal
+        if (response.data.onboarding.status === 'APPROVED') {
+          navigate('/personal', { replace: true });
+        }
+      } catch (e) {
+        console.log(e);
+        // token expired, need to login again
+        if (e.response.status === 401) {
+          navigate('/login', { replace: true });
+        }
+      }
+    };
+
+    fetchAPI();
+    // always check its onboarding status
+  }, []);
+
+  const email = user.email || '';
 
   const prevNextHandlerRef = useRef({});
   const pages = [
     {
       name: 'Personal Information',
-      ui: (
-        <PersonalInfo
-          prevNextHandler={(h) => (prevNextHandlerRef.current = h)}
-          email={decodedEmail}
-        />
-      ),
+      ui: <PersonalInfo prevNextHandler={(h) => (prevNextHandlerRef.current = h)} email={email} />,
     },
     {
       name: 'Address and Contacts',

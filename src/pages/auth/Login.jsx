@@ -8,6 +8,7 @@ import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
 import { loginAPI } from '../../features/auth/authAPI';
 import { setCredentials } from '../../features/auth/authSlice';
+import { encodeString } from '../../utilities/encode';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Enter username'),
@@ -35,7 +36,19 @@ function Login() {
       const { user, token } = response.data.data;
       dispatch(setCredentials({ user, token, role: user.role }));
 
-      navigate('/personal', { replace: true });
+      if (user.onboardingStatus === 'NOT_STARTED') {
+        const encodedEmail = encodeString(user.email);
+
+        navigate(`/onboarding?email=${encodedEmail}`, { replace: true });
+      } else if (user.onboardingStatus === 'PENDING') {
+        // go to onboard pending page
+        navigate('/onboarding/pending', { replace: true });
+      } else if (user.onboardingStatus === 'REJECTED') {
+        // go to onboard rejected page
+        navigate('/onboarding/rejected', { replace: true });
+      } else if (user.onboardingStatus === 'APPROVED') {
+        navigate('/personal', { replace: true });
+      }
     } catch (error) {
       console.error('Login failed:', error);
 

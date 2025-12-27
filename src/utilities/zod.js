@@ -198,7 +198,6 @@ export const onboardingWorkAuthSchema = z
     usPersonDoc: z.instanceof(File).optional().nullable(),
     notUSPersonWorkAuth: z.string(),
     notUSPersonWorkAuthDoc: z.instanceof(File).optional().nullable(),
-    optReceipt: z.instanceof(File).optional().nullable(),
     otherWorkAuthVisaTitle: z.string(),
     workAuthStartDate: z.any(),
     workAuthEndDate: z.any(),
@@ -256,21 +255,6 @@ export const onboardingWorkAuthSchema = z
           });
         }
 
-        // work auth F1
-        if (data.notUSPersonWorkAuth === 'F1(CPT/OPT)') {
-          if (data.optReceipt === null) {
-            ctx.addIssue({
-              message: 'Document must be less than 5MB',
-              path: ['optReceipt'],
-            });
-          } else if (data.optReceipt.size > 5 * 1024 * 1024) {
-            ctx.addIssue({
-              message: 'Document must be less than 5MB',
-              path: ['optReceipt'],
-            });
-          }
-        }
-
         // work auth other
         if (data.notUSPersonWorkAuth === 'Other') {
           if (!data.otherWorkAuthVisaTitle) {
@@ -291,6 +275,20 @@ export const onboardingWorkAuthSchema = z
         if (!data.workAuthEndDate) {
           ctx.addIssue({
             message: "Please enter your work authorization's end date",
+            path: ['workAuthEndDate'],
+          });
+        }
+        if (
+          data.workAuthStartDate &&
+          data.workAuthEndDate &&
+          data.workAuthEndDate.isBefore(data.workAuthStartDate)
+        ) {
+          ctx.addIssue({
+            message: 'Start date need to be earlier than end date',
+            path: ['workAuthStartDate'],
+          });
+          ctx.addIssue({
+            message: 'End date need to be later than start date',
             path: ['workAuthEndDate'],
           });
         }
