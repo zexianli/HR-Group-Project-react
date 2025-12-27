@@ -1,13 +1,35 @@
 import { Navigate, useLocation } from 'react-router';
+import { useSelector } from 'react-redux';
 import OuterContainer from '../../../components/auth/layout/OuterContainer';
 import { Box } from '@mui/material';
 
 function OnboardFinish() {
   const location = useLocation();
+  const { user } = useSelector((state) => state.auth);
 
   if (!location.state?.fromOnboarding) {
-    return <Navigate to="onboarding/pending" replace />;
+    if (!user) {
+      return <Navigate to="/login" replace />;
+    } else if (user) {
+      // NOT_STARTED -> /onboarding/rejected
+      if (user.onboardingStatus === 'NOT_STARTED') {
+        return <Navigate to="/onboarding" replace />;
+      }
+      // REJECTED -> /onboarding/rejected
+      else if (user.onboardingStatus === 'REJECTED') {
+        return <Navigate to="/onboarding/rejected" replace />;
+      }
+      // PENDING -> /onboarding/pending
+      else if (user.onboardingStatus === 'PENDING') {
+        return <Navigate to="/onboarding/pending" replace />;
+      }
+      // APPROVED -> /personal
+      else if (user.onboardingStatus === 'APPROVED') {
+        return <Navigate to="/personal" replace />;
+      }
+    }
   }
+
   return (
     <OuterContainer>
       <Box

@@ -16,7 +16,6 @@ import FormHelperText from '@mui/material/FormHelperText';
 import dayjs from 'dayjs';
 import { onboardingPersonalInfoSchema } from '../../utilities/zod';
 import { storeFile, retrieveFile } from '../../utilities/fileParser';
-import Input from '@mui/material/Input';
 
 import { useState, useEffect } from 'react';
 
@@ -29,7 +28,7 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function PersonalInfo({ prevNextHandler, email }) {
+function PersonalInfo({ prevNextHandler, email, handleCheckUser }) {
   const {
     register,
     handleSubmit,
@@ -59,11 +58,11 @@ function PersonalInfo({ prevNextHandler, email }) {
       carcolor: '',
     },
   });
-
   const [profilePictureUrl, setProfilePictureUrl] = useState('');
   const [driverLicenseUrl, setDriverLicenseUrl] = useState('');
 
   useEffect(() => {
+    handleCheckUser();
     // get the data from local storage
     const savedPersonalInformationData = localStorage.getItem('personalInformation');
     const savedHasDriverLicense = localStorage.getItem('driverLicenseExist');
@@ -129,6 +128,7 @@ function PersonalInfo({ prevNextHandler, email }) {
 
   prevNextHandler({
     onNext: async () => {
+      handleCheckUser();
       let canGoNext = false;
       const submit = handleSubmit(async (data) => {
         // store things in local storage

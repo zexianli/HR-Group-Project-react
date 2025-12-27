@@ -26,7 +26,7 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function AddressContact({ prevNextHandler }) {
+function AddressContact({ prevNextHandler, handleCheckUser }) {
   const {
     register,
     handleSubmit,
@@ -65,6 +65,7 @@ function AddressContact({ prevNextHandler }) {
   });
 
   useEffect(() => {
+    handleCheckUser();
     const savedAddressContactData = localStorage.getItem('addressContact');
     const savedHasReference = localStorage.getItem('referenceExist');
     if (savedAddressContactData) {
@@ -92,6 +93,7 @@ function AddressContact({ prevNextHandler }) {
 
   prevNextHandler({
     onNext: async () => {
+      handleCheckUser();
       // submit, get the form data and save it as it is
       let canGoNext = false;
       const submit = handleSubmit((data) => {
@@ -105,7 +107,7 @@ function AddressContact({ prevNextHandler }) {
       return canGoNext;
     },
     onPrev: () => {
-      // don't submit, just get the form data and save it as it is
+      handleCheckUser();
       return true;
     },
   });

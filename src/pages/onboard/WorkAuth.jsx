@@ -27,6 +27,8 @@ import {
 } from '../../features/onboarding/onboardingAPI';
 import { retrieveFile } from '../../utilities/fileParser';
 import { useNavigate } from 'react-router';
+import { useDispatch, useSelector } from 'react-redux';
+import { setCredentials } from '../../features/auth/authSlice';
 // import { useDispatch } from 'react-redux';
 
 const FormGrid = styled(Grid)(() => ({
@@ -34,8 +36,10 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function WorkAuth({ prevNextHandler }) {
+function WorkAuth({ prevNextHandler, handleCheckUser }) {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user, token, role } = useSelector((state) => state.auth);
 
   const {
     register,
@@ -64,9 +68,11 @@ function WorkAuth({ prevNextHandler }) {
       return true;
     },
     onPrev: () => {
+      handleCheckUser();
       return true;
     },
     onSubmit: async () => {
+      handleCheckUser();
       // compile PersonalInfo and AddressContact into one along with WorkAuth
       let canSubmit = false;
       const submit = handleSubmit(async (data) => {
@@ -160,44 +166,50 @@ function WorkAuth({ prevNextHandler }) {
             // if not, go to login
             // // call the submitOnboarding API
 
-            const token = localStorage.getItem('token');
+            // const token = localStorage.getItem('token');
 
             const profilePicture = retrieveFile('profilePicture');
             const driverLicenseCopy = retrieveFile('driverLicenseCopy');
 
-            // personal picture file upload
-            const ppFormData = new FormData();
-            ppFormData.append('docType', 'profile_picture');
-            ppFormData.append('file', profilePicture);
+            if (profilePicture) {
+              // personal picture file upload
+              const ppFormData = new FormData();
+              ppFormData.append('docType', 'profile_picture');
+              ppFormData.append('file', profilePicture);
 
-            const postPPResponse = await uploadFile(ppFormData, token);
+              const postPPResponse = await uploadFile(ppFormData, token);
+              console.log('upload profile picture', postPPResponse);
+            }
 
-            // driver license file upload
-            const dlFormData = new FormData();
-            dlFormData.append('docType', 'driver_license');
-            dlFormData.append('file', driverLicenseCopy);
+            if (driverLicenseCopy) {
+              // driver license file upload
+              const dlFormData = new FormData();
+              dlFormData.append('docType', 'driver_license');
+              dlFormData.append('file', driverLicenseCopy);
 
-            const postDLResponse = await uploadFile(dlFormData, token);
+              const postDLResponse = await uploadFile(dlFormData, token);
+              console.log('upload driver license', postDLResponse);
+            }
 
-            // wrok auth file upload
-            const waFormData = new FormData();
-            const workAuthType =
-              workAuthorizationType === 'F1_CPT_OPT'
-                ? 'opt_receipt'
-                : workAuthorizationType.toLowerCase();
-            waFormData.append('docType', workAuthType);
-            waFormData.append('file', notUSPersonWorkAuthDoc || usPersonDoc);
+            if (notUSPersonWorkAuthDoc || usPersonDoc) {
+              // wrok auth file upload
+              const waFormData = new FormData();
+              const workAuthType =
+                workAuthorizationType === 'F1_CPT_OPT'
+                  ? 'opt_receipt'
+                  : workAuthorizationType.toLowerCase();
+              waFormData.append('docType', workAuthType);
+              waFormData.append('file', notUSPersonWorkAuthDoc || usPersonDoc);
 
-            // console.log(workAuthType);
-            // console.log(notUSPersonWorkAuthDoc || usPersonDoc);
-            const postWAResponse =
-              workAuthType === 'opt_receipt'
-                ? await uploadOPTFile(waFormData, token)
-                : await uploadFile(waFormData, token);
+              // console.log(workAuthType);
+              // console.log(notUSPersonWorkAuthDoc || usPersonDoc);
+              const postWAResponse =
+                workAuthType === 'opt_receipt'
+                  ? await uploadOPTFile(waFormData, token)
+                  : await uploadFile(waFormData, token);
 
-            console.log('upload profile picture', postPPResponse);
-            console.log('upload driver license', postDLResponse);
-            console.log('upload work auth', postWAResponse);
+              console.log('upload work auth', postWAResponse);
+            }
 
             const onboardingData = {
               ...reformedPersonalInformation,
@@ -213,9 +225,8 @@ function WorkAuth({ prevNextHandler }) {
             console.log(onboardingData);
             const submitOnboardingResponse = await submitOnboarding(onboardingData, token);
             console.log('submit onboarding', submitOnboardingResponse);
-            // navigate to onboard pending
-            navigate('/onboard/finish', { state: { fromOnboarding: true }, replace: true });
-
+            user.onboardingStatus = 'PENDING';
+            dispatch(setCredentials({ user, token, role }));
             // remove every onboarding related things from the local storage
             localStorage.removeItem('personalInformation');
             localStorage.removeItem('profilePicture');
@@ -225,6 +236,8 @@ function WorkAuth({ prevNextHandler }) {
             localStorage.removeItem('driverLicenseCopyname');
             localStorage.removeItem('addressContact');
             localStorage.removeItem('referenceExist');
+            // navigate to onboard pending
+            navigate('/onboarding/finish', { state: { fromOnboarding: true }, replace: true });
           } catch (error) {
             // token expired, need to login again
             if (

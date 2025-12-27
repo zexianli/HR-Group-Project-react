@@ -32,9 +32,9 @@ function Onboarding() {
         // }
 
         // PENDING -> /onboarding/pending
-        if (response.data.onboarding.status === 'PENDING') {
-          navigate('/onboarding/pending', { replace: true });
-        }
+        // if (response.data.onboarding.status === 'PENDING') {
+        //   navigate('/onboarding/pending', { replace: true });
+        // }
         // APPROVED -> /personal
         if (response.data.onboarding.status === 'APPROVED') {
           navigate('/personal', { replace: true });
@@ -52,21 +52,43 @@ function Onboarding() {
     // always check its onboarding status
   }, []);
 
+  function handleCheckUser() {
+    if (!user) {
+      navigate('/login', { replace: true });
+    }
+  }
+
   const email = user.email || '';
 
   const prevNextHandlerRef = useRef({});
   const pages = [
     {
       name: 'Personal Information',
-      ui: <PersonalInfo prevNextHandler={(h) => (prevNextHandlerRef.current = h)} email={email} />,
+      ui: (
+        <PersonalInfo
+          prevNextHandler={(h) => (prevNextHandlerRef.current = h)}
+          email={email}
+          handleCheckUser={handleCheckUser}
+        />
+      ),
     },
     {
       name: 'Address and Contacts',
-      ui: <AddressContact prevNextHandler={(h) => (prevNextHandlerRef.current = h)} />,
+      ui: (
+        <AddressContact
+          prevNextHandler={(h) => (prevNextHandlerRef.current = h)}
+          handleCheckUser={handleCheckUser}
+        />
+      ),
     },
     {
       name: 'Work Authorization',
-      ui: <WorkAuth prevNextHandler={(h) => (prevNextHandlerRef.current = h)} />,
+      ui: (
+        <WorkAuth
+          prevNextHandler={(h) => (prevNextHandlerRef.current = h)}
+          handleCheckUser={handleCheckUser}
+        />
+      ),
     },
   ];
 

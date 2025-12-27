@@ -2,13 +2,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import TextInput from '../../components/auth/TextInput';
 import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
 import { loginAPI } from '../../features/auth/authAPI';
 import { setCredentials } from '../../features/auth/authSlice';
 import { encodeString } from '../../utilities/encode';
+import { useEffect } from 'react';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Enter username'),
@@ -18,6 +19,7 @@ const loginSchema = z.object({
 function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
 
   const {
     register,
@@ -27,6 +29,27 @@ function Login() {
   } = useForm({
     resolver: zodResolver(loginSchema),
   });
+
+  useEffect(() => {
+    if (user) {
+      // NOT_STARTED -> /onboarding/rejected
+      if (user.onboardingStatus === 'NOT_STARTED') {
+        navigate('/onboarding', { replace: true });
+      }
+      // REJECTED -> /onboarding/rejected
+      else if (user.onboardingStatus === 'REJECTED') {
+        navigate('/onboarding/rejected', { replace: true });
+      }
+      // PENDING -> /onboarding/pending
+      else if (user.onboardingStatus === 'PENDING') {
+        navigate('/onboarding/pending', { replace: true });
+      }
+      // APPROVED -> /personal
+      else if (user.onboardingStatus === 'APPROVED') {
+        navigate('/personal', { replace: true });
+      }
+    }
+  }, []);
 
   const onSubmit = async (data) => {
     try {
