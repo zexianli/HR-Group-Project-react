@@ -28,7 +28,7 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function PersonalInfo({ prevNextHandler }) {
+function PersonalInfo({ prevNextHandler, email }) {
   const {
     register,
     handleSubmit,
@@ -44,7 +44,7 @@ function PersonalInfo({ prevNextHandler }) {
       lastname: '',
       middlename: '',
       preferredname: '',
-      email: 'abcd123@gmail.com', // get the default value from URL
+      email: email, // get the default value from URL
       dateofbirth: null,
       ssn: '',
       gender: '',
@@ -127,6 +127,7 @@ function PersonalInfo({ prevNextHandler }) {
       const submit = handleSubmit(async (data) => {
         // store things in local storage
         let personalInfoData;
+        console.log(data.profilePicture);
         if (!data.driverLicenseExist) {
           // personal info without license
           personalInfoData = {
@@ -139,6 +140,7 @@ function PersonalInfo({ prevNextHandler }) {
             gender: data.gender,
             email: data.email,
           };
+
           storeFile('profilePicture', data.profilePicture, profilePictureCopyName);
           localStorage.removeItem('driverLicenseCopy');
           localStorage.removeItem('driverLicenseCopyname');
@@ -176,9 +178,6 @@ function PersonalInfo({ prevNextHandler }) {
       return canGoNext;
     },
     onPrev: () => {
-      return true;
-    },
-    onSubmit: () => {
       return true;
     },
   });
@@ -235,7 +234,6 @@ function PersonalInfo({ prevNextHandler }) {
           id="email"
           label="Email"
           placeholder="e.g, jwhite@gmail.com"
-          value="abcd1234@gmail.com"
           type="email"
           error={false}
           disabled
@@ -288,7 +286,7 @@ function PersonalInfo({ prevNextHandler }) {
             name="gender"
             control={control}
             render={({ field }) => (
-              <Select {...field} displayEmpty error={!!errors.gender} size="small">
+              <Select {...field} displayEmpty defaultValue="" error={!!errors.gender} size="small">
                 <MenuItem value="" disabled>
                   Select gender
                 </MenuItem>
