@@ -404,3 +404,43 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ================= Modal Scroll Fix ================= */
+
+/* Modal backdrop is already fixed */
+.modal {
+  max-height: 90vh;          /* never exceed viewport */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header stays fixed */
+.modal-header {
+  flex-shrink: 0;
+}
+
+/* Footer (if any) stays fixed */
+.modal-footer {
+  flex-shrink: 0;
+}
+
+/* 🚀 Scrollable content area */
+.modal-body {
+  overflow-y: auto;
+  max-height: calc(90vh - 120px); /* header + footer space */
+  padding-right: 6px;            /* avoid scrollbar overlap */
+}
+
+/* Optional: nicer scrollbar (WebKit) */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
