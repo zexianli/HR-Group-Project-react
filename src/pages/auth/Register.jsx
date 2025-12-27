@@ -64,6 +64,8 @@ function Register() {
         return;
       }
 
+      // what if the link is already used?
+
       try {
         const response = await validateTokenAPI(registrationToken);
         const emailFromToken = response.data.data.email;
