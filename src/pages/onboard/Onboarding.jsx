@@ -31,10 +31,10 @@ function Onboarding() {
         //   navigate('/onboarding/rejected', { replace: true });
         // }
 
-        // // PENDING -> /onboarding/pending
-        // if (response.data.onboarding.status === 'PENDING') {
-        //   navigate('/onboarding/pending', { replace: true });
-        // }
+        // PENDING -> /onboarding/pending
+        if (response.data.onboarding.status === 'PENDING') {
+          navigate('/onboarding/pending', { replace: true });
+        }
         // APPROVED -> /personal
         if (response.data.onboarding.status === 'APPROVED') {
           navigate('/personal', { replace: true });
