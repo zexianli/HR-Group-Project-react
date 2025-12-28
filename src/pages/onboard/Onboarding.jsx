@@ -4,8 +4,6 @@ import AddressContact from './AddressContact';
 import WorkAuth from './WorkAuth';
 import { Box } from '@mui/material';
 import { useState, useRef } from 'react';
-import { decodeString } from '../../utilities/decode';
-import { useLocation } from 'react-router';
 
 function Onboarding() {
   // a stepper
@@ -14,22 +12,11 @@ function Onboarding() {
   // second page -> HP-34
   // third page -> HP-35
   // fourth page -> confirming page
-
-  const location = useLocation();
-  const queryParams = new URLSearchParams(location.search);
-  const encodedEmail = queryParams.get('email') || '';
-  const decodedEmail = encodedEmail ? decodeString(encodedEmail) : '';
-
   const prevNextHandlerRef = useRef({});
   const pages = [
     {
       name: 'Personal Information',
-      ui: (
-        <PersonalInfo
-          prevNextHandler={(h) => (prevNextHandlerRef.current = h)}
-          email={decodedEmail}
-        />
-      ),
+      ui: <PersonalInfo prevNextHandler={(h) => (prevNextHandlerRef.current = h)} />,
     },
     {
       name: 'Address and Contacts',

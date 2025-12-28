@@ -28,7 +28,7 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function PersonalInfo({ prevNextHandler, email }) {
+function PersonalInfo({ prevNextHandler }) {
   const {
     register,
     handleSubmit,
@@ -44,7 +44,7 @@ function PersonalInfo({ prevNextHandler, email }) {
       lastname: '',
       middlename: '',
       preferredname: '',
-      email: email, // get the default value from URL
+      email: 'abcd123@gmail.com', // get the default value from URL
       dateofbirth: null,
       ssn: '',
       gender: '',
@@ -234,6 +234,7 @@ function PersonalInfo({ prevNextHandler, email }) {
           id="email"
           label="Email"
           placeholder="e.g, jwhite@gmail.com"
+          value="abcd1234@gmail.com"
           type="email"
           error={false}
           disabled
@@ -286,7 +287,7 @@ function PersonalInfo({ prevNextHandler, email }) {
             name="gender"
             control={control}
             render={({ field }) => (
-              <Select {...field} displayEmpty defaultValue="" error={!!errors.gender} size="small">
+              <Select {...field} displayEmpty error={!!errors.gender} size="small">
                 <MenuItem value="" disabled>
                   Select gender
                 </MenuItem>
