@@ -5,6 +5,7 @@ import Navbar from '../../components/navbar/OnboardNavBar';
 import SectionCard from '../../components/info/layout/SectionCard';
 import { FieldRow, TextInput, Modal } from '../../components/info/layout/ModuleAction';
 import { formatMonthDay } from '../../components/common/formatedData';
+import { getAuthHeader } from '../../api/getToken';
 
 /**
  * HousingPage
@@ -39,7 +40,7 @@ export default function HousingPage() {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/housing/me`, {
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_API_MOCK_TOKEN}`,
+            Authorization: getAuthHeader(),
           },
         });
 
@@ -63,7 +64,7 @@ export default function HousingPage() {
     try {
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/housing/reports`, {
         headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_API_MOCK_TOKEN}`,
+          Authorization: getAuthHeader(),
         },
       });
 
