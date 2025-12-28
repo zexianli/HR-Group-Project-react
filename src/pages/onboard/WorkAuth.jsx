@@ -65,6 +65,7 @@ function WorkAuth({ prevNextHandler, handleCheckUser }) {
 
   prevNextHandler({
     onNext: () => {
+      console.log('next from Work Auth');
       return true;
     },
     onPrev: () => {

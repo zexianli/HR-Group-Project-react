@@ -97,10 +97,39 @@ function AddressContact({ prevNextHandler, handleCheckUser }) {
       // submit, get the form data and save it as it is
       let canGoNext = false;
       const submit = handleSubmit((data) => {
-        const { referenceExist, ...rest } = data;
+        let addressContactData;
+        if (!data.referenceExist) {
+          addressContactData = {
+            cellPhone: data.cellPhone,
+            workPhone: data.workPhone,
+            street: data.street,
+            city: data.city,
+            state: data.state,
+            zip: data.zip,
+            buildingApt: data.buildingApt,
+            emergencyContacts: data.emergencyContacts,
+          };
+        } else {
+          addressContactData = {
+            cellPhone: data.cellPhone,
+            workPhone: data.workPhone,
+            street: data.street,
+            city: data.city,
+            state: data.state,
+            zip: data.zip,
+            buildingApt: data.buildingApt,
+            emergencyContacts: data.emergencyContacts,
+            referenceFirstName: data.referenceFirstName,
+            referenceLastName: data.referenceLastName,
+            referenceMiddleName: data.referenceMiddleName,
+            referencePhone: data.referencePhone,
+            referenceEmail: data.referenceEmail,
+            referenceRelationship: data.referenceRelationship,
+          };
+        }
 
-        localStorage.setItem('addressContact', JSON.stringify(rest));
-        localStorage.setItem('referenceExist', referenceExist.toString());
+        localStorage.setItem('addressContact', JSON.stringify(addressContactData));
+        localStorage.setItem('referenceExist', data.referenceExist.toString());
         canGoNext = true;
       });
       await submit();

@@ -1,58 +1,40 @@
 const initialProfile = {
   name: {
-    firstName: 'Yuhang',
+    firstName: '',
     middleName: '',
-    lastName: 'Zhang',
-    preferredName: 'Leo',
-    email: 'leo.zhang@example.com',
-    ssn: '123-45-6789',
-    dob: '1999-01-01',
-    gender: 'Male',
-    profilePictureUrl:
-      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBRA2TmZWxhMbzalqzdjW_zZJBp7U3ZdE--w&s',
+    lastName: '',
+    preferredName: '',
+    email: '',
+    ssn: '',
+    dob: '',
+    gender: '',
+    profilePictureUrl: '',
   },
   address: {
-    apt: 'Apt 1203',
-    street: '123 Main St',
-    city: 'Los Angeles',
-    state: 'CA',
-    zip: '90007',
+    apt: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
   },
   contact: {
-    cellPhone: '(213) 555-0101',
-    workPhone: '(213) 555-0199',
+    cellPhone: '',
+    workPhone: '',
   },
   employment: {
-    visaTitle: 'F-1 OPT',
-    startDate: '2025-01-01',
-    endDate: '2025-12-31',
+    visaTitle: '',
+    startDate: '',
+    endDate: '',
   },
   emergency: {
-    firstName: 'Jane',
+    firstName: '',
     middleName: '',
-    lastName: 'Zhang',
-    phone: '(626) 555-0123',
-    email: 'jane@example.com',
-    relationship: 'Sister',
+    lastName: '',
+    phone: '',
+    email: '',
+    relationship: '',
   },
-  documents: [
-    {
-      id: 'doc-1',
-      filename: 'drivers_license.png',
-      // image example:
-      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Example.jpg/640px-Example.jpg',
-      mime: 'image/jpeg',
-      uploadedAt: '2025-12-10',
-    },
-    {
-      id: 'doc-2',
-      filename: 'work_auth.pdf',
-      // pdf example:
-      url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-      mime: 'application/pdf',
-      uploadedAt: '2025-12-12',
-    },
-  ],
+  documents: {},
 };
 
 const sectionOrder = [

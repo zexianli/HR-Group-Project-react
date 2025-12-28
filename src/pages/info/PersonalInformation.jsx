@@ -1,12 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
 import '../../components/info/styles.css';
-import { initialProfile, sectionOrder } from '../../assets/data/personal-info';
 import Navbar from '../../components/navbar/OnboardNavBar';
 import SectionCard from '../../components/info/layout/SectionCard';
+import { previewDocuments } from '../../api/previewDocuments';
+import { uploadDocuments } from '../../api/uploadDocuments';
 import {
   deepClone,
-  isPdf,
-  isImage,
   FieldRow,
   TextInput,
   Select,
@@ -14,12 +13,16 @@ import {
   Modal,
 } from '../../components/info/layout/ModuleAction';
 import FALLBACK_AVATAR from '../../assets/data/fallback-avatar';
+import { initialProfile } from '../../assets/data/personal-info';
+import '../../components/info/styles.css';
+import { getEmployeeProfile, updateEmployeeProfile } from '../../api/employeeInfomation';
+import {
+  mapEmployeeProfileToInitialProfile,
+  mapInitialProfileToEmployeePayload,
+} from '../../api/convertFormat';
 
 /**
  * PersonalInformationPage
- * - Section-level edit/cancel/save
- * - Cancel confirms discard and reverts to last saved
- * - Documents: list + download + preview modal (image/pdf) + optional upload demo
  */
 
 function PageShell({ children }) {
@@ -30,44 +33,78 @@ function PageShell({ children }) {
   );
 }
 
+const sectionOrder = [
+  { key: 'name' },
+  { key: 'address' },
+  { key: 'contact' },
+  { key: 'employment' },
+  { key: 'emergency' },
+  { key: 'documents' },
+];
+
+const DOCUMENT_TYPES = ['driver_license', 'opt_receipt', 'opt_ead', 'i983', 'i20'];
+
 export default function PersonalInformationPage() {
-  // "saved" is the source of truth (what user last saved)
+  // source of truth
   const [saved, setSaved] = useState(() => deepClone(initialProfile));
-  // "draft" is editable copy (changes live here during edit)
+  // editable copy
   const [draft, setDraft] = useState(() => deepClone(initialProfile));
 
-  // track which section is currently in edit mode
-  const [editing, setEditing] = useState(() => {
-    const m = {};
-    for (const s of sectionOrder) m[s.key] = false;
-    return m;
-  });
+  const [editing, setEditing] = useState(() =>
+    Object.fromEntries(sectionOrder.map((s) => [s.key, false]))
+  );
 
-  // document preview modal
+  const [previewDocType, setPreviewDocType] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null);
 
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadDocType, setUploadDocType] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  /* ---------------- section edit handlers ---------------- */
+
   const startEdit = (sectionKey) => {
-    // sync draft section with saved each time you enter edit
-    setDraft((prev) => ({ ...prev, [sectionKey]: deepClone(saved[sectionKey]) }));
+    setDraft((prev) => ({
+      ...prev,
+      [sectionKey]: deepClone(saved[sectionKey]),
+    }));
     setEditing((prev) => ({ ...prev, [sectionKey]: true }));
   };
 
   const cancelEdit = (sectionKey) => {
-    const ok = window.confirm(
-      'Discard all changes in this section?\n\nClick OK to discard, or Cancel to keep editing.'
-    );
-    if (!ok) return;
+    if (!window.confirm('Discard all changes in this section?')) return;
 
-    setDraft((prev) => ({ ...prev, [sectionKey]: deepClone(saved[sectionKey]) }));
+    setDraft((prev) => ({
+      ...prev,
+      [sectionKey]: deepClone(saved[sectionKey]),
+    }));
     setEditing((prev) => ({ ...prev, [sectionKey]: false }));
   };
 
-  const saveEdit = (sectionKey) => {
-    setSaved((prev) => ({ ...prev, [sectionKey]: deepClone(draft[sectionKey]) }));
-    setEditing((prev) => ({ ...prev, [sectionKey]: false }));
+  const saveEdit = async (sectionKey) => {
+    try {
+      // 1️⃣ Build the next saved profile (merge section)
+      const nextProfile = {
+        ...saved,
+        [sectionKey]: deepClone(draft[sectionKey]),
+      };
+
+      // 2️⃣ Convert to backend payload
+      const payload = mapInitialProfileToEmployeePayload(nextProfile);
+
+      // 3️⃣ Send to backend
+      await updateEmployeeProfile(payload);
+
+      // 4️⃣ Commit locally ONLY after success
+      setSaved(nextProfile);
+      setEditing((prev) => ({ ...prev, [sectionKey]: false }));
+    } catch (err) {
+      console.error('Failed to save profile', err);
+      alert('Failed to save changes. Please try again.');
+    }
   };
 
-  // helpers for updating nested values
   const updateDraftField = (sectionKey, field, value) => {
     setDraft((prev) => ({
       ...prev,
@@ -78,29 +115,129 @@ export default function PersonalInformationPage() {
     }));
   };
 
-  const documentCount = useMemo(() => saved.documents.length, [saved.documents]);
+  /* ---------------- avatar logic ---------------- */
+  async function loadAvatarOnly() {
+    const response = await previewDocuments('profile_picture');
+    return response || null;
+  }
 
-  // Optional demo: upload local file into documents (creates object URL)
-  const onUploadDoc = (file, type) => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    const newDoc = {
-      id: `doc-${Date.now()}`,
-      type: type || 'Uploaded Document',
-      filename: file.name,
-      url,
-      mime: file.type || 'application/octet-stream',
-      uploadedAt: new Date().toISOString().slice(0, 10),
-    };
+  async function loadAvatar() {
+    const response = await previewDocuments('profile_picture');
+    if (!response) return;
 
-    // If documents section is NOT editing, we can treat upload as immediate save,
-    // but your spec doesn’t mandate this. Here we add to both draft and saved if not editing;
-    // if editing, add to draft only.
-    setDraft((prev) => ({ ...prev, documents: [newDoc, ...prev.documents] }));
-    setSaved((prev) =>
-      editing.documents ? prev : { ...prev, documents: [newDoc, ...prev.documents] }
+    setSaved((prev) => ({
+      ...prev,
+      name: {
+        ...prev.name,
+        profilePictureUrl: response,
+      },
+    }));
+
+    setDraft((prev) => ({
+      ...prev,
+      name: {
+        ...prev.name,
+        profilePictureUrl: response,
+      },
+    }));
+  }
+
+  async function loadDocumentsOnly() {
+    const results = await Promise.all(
+      DOCUMENT_TYPES.map(async (type) => {
+        const url = await previewDocuments(type);
+        if (!url) return [type, null];
+
+        return [
+          type,
+          {
+            id: `${type}-${Date.now()}`,
+            filename: type.replace('_', ' ').toUpperCase(),
+            url,
+            mime: url.endsWith('.pdf') ? 'application/pdf' : 'image/*',
+            uploadedAt: new Date().toISOString().slice(0, 10),
+            type,
+          },
+        ];
+      })
     );
+    return Object.fromEntries(results);
+  }
+
+  const handleAvatarUpload = async (file) => {
+    if (!file) return;
+    const response = await uploadDocuments(file, 'profile_picture');
+    if (!response) return;
+    updateDraftField('name', 'profilePictureUrl', response);
+    loadAvatar();
   };
+
+  useEffect(() => {
+    if (!previewDocType) return;
+
+    async function loadPreviewDoc() {
+      const response = await previewDocuments(previewDocType);
+      console.log('response', response);
+      if (!response) {
+        setPreviewDoc(null);
+        return;
+      }
+
+      setPreviewDoc(response);
+    }
+
+    loadPreviewDoc();
+  }, [previewDocType]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function initProfile() {
+      try {
+        // 1️⃣ Fetch base profile FIRST
+        const res = await getEmployeeProfile();
+        const backendProfile = res?.employeeProfile;
+        console.log('backendProfile', backendProfile);
+        if (!backendProfile) throw new Error('Employee profile not found');
+
+        let profile = mapEmployeeProfileToInitialProfile(backendProfile);
+
+        // 2️⃣ Load avatar
+        const avatarUrl = await loadAvatarOnly();
+        if (avatarUrl) {
+          profile = {
+            ...profile,
+            name: {
+              ...profile.name,
+              profilePictureUrl: avatarUrl,
+            },
+          };
+        }
+
+        // 3️⃣ Load documents
+        const docsMap = await loadDocumentsOnly();
+        profile = {
+          ...profile,
+          documents: docsMap,
+        };
+
+        // 4️⃣ Single state commit (NO RACES)
+        if (mounted) {
+          setSaved(profile);
+          setDraft(profile);
+        }
+      } catch (err) {
+        console.error('Failed to initialize profile', err);
+      }
+    }
+
+    initProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <>
       <Navbar />
@@ -120,10 +257,24 @@ export default function PersonalInformationPage() {
                 alt="Profile"
                 className="avatar"
                 onError={(e) => {
-                  e.currentTarget.onerror = null;
                   e.currentTarget.src = FALLBACK_AVATAR;
                 }}
               />
+
+              {editing.name && (
+                <label className="avatar-upload-btn">
+                  Upload Profile
+                  <input
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    onChange={(e) => {
+                      handleAvatarUpload(e.target.files?.[0]);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              )}
             </div>
 
             <div className="stack gap-lg">
@@ -164,7 +315,6 @@ export default function PersonalInformationPage() {
                   disabled={!editing.name}
                   value={draft.name.email}
                   onChange={(v) => updateDraftField('name', 'email', v)}
-                  placeholder="name@example.com"
                 />
               </FieldRow>
 
@@ -173,12 +323,11 @@ export default function PersonalInformationPage() {
                   disabled={!editing.name}
                   value={draft.name.ssn}
                   onChange={(v) => updateDraftField('name', 'ssn', v)}
-                  placeholder="XXX-XX-XXXX"
                 />
               </FieldRow>
 
               <FieldRow label="Date of birth">
-                <DateInput
+                <TextInput
                   disabled={!editing.name}
                   value={draft.name.dob}
                   onChange={(v) => updateDraftField('name', 'dob', v)}
@@ -186,25 +335,10 @@ export default function PersonalInformationPage() {
               </FieldRow>
 
               <FieldRow label="Gender">
-                <Select
+                <TextInput
                   disabled={!editing.name}
                   value={draft.name.gender}
                   onChange={(v) => updateDraftField('name', 'gender', v)}
-                  options={[
-                    { value: '', label: 'Select...' },
-                    { value: 'Male', label: 'Male' },
-                    { value: 'Female', label: 'Female' },
-                    { value: 'Non-binary', label: 'Non-binary' },
-                    { value: 'Prefer not to say', label: 'Prefer not to say' },
-                  ]}
-                />
-              </FieldRow>
-              <FieldRow label="Profile URL">
-                <TextInput
-                  disabled={!editing.name}
-                  value={draft.name.profilePictureUrl}
-                  onChange={(v) => updateDraftField('name', 'profilePictureUrl', v)}
-                  placeholder="Paste image URL"
                 />
               </FieldRow>
             </div>
@@ -227,6 +361,7 @@ export default function PersonalInformationPage() {
                 onChange={(v) => updateDraftField('address', 'apt', v)}
               />
             </FieldRow>
+
             <FieldRow label="Street name">
               <TextInput
                 disabled={!editing.address}
@@ -235,6 +370,7 @@ export default function PersonalInformationPage() {
               />
             </FieldRow>
           </div>
+
           <div className="stack row-2">
             <FieldRow label="City">
               <TextInput
@@ -243,6 +379,7 @@ export default function PersonalInformationPage() {
                 onChange={(v) => updateDraftField('address', 'city', v)}
               />
             </FieldRow>
+
             <FieldRow label="State">
               <TextInput
                 disabled={!editing.address}
@@ -251,6 +388,7 @@ export default function PersonalInformationPage() {
               />
             </FieldRow>
           </div>
+
           <div className="stack row-2">
             <FieldRow label="Zip">
               <TextInput
@@ -259,7 +397,7 @@ export default function PersonalInformationPage() {
                 onChange={(v) => updateDraftField('address', 'zip', v)}
               />
             </FieldRow>
-            <div></div>
+            <div />
           </div>
         </SectionCard>
 
@@ -276,14 +414,15 @@ export default function PersonalInformationPage() {
               <TextInput
                 disabled={!editing.contact}
                 value={draft.contact.cellPhone}
-                onChange={(v) => updateDraftField('address', 'cellPhone', v)}
+                onChange={(v) => updateDraftField('contact', 'cellPhone', v)}
               />
             </FieldRow>
+
             <FieldRow label="Work Phone">
               <TextInput
                 disabled={!editing.contact}
                 value={draft.contact.workPhone}
-                onChange={(v) => updateDraftField('address', 'workPhone', v)}
+                onChange={(v) => updateDraftField('contact', 'workPhone', v)}
               />
             </FieldRow>
           </div>
@@ -306,12 +445,12 @@ export default function PersonalInformationPage() {
                 placeholder="e.g. F-1 OPT, H-1B"
               />
             </FieldRow>
-
-            <div></div>
+            <div />
           </div>
+
           <div className="stack row-2">
             <FieldRow label="Start Date">
-              <DateInput
+              <TextInput
                 disabled={!editing.employment}
                 value={draft.employment.startDate}
                 onChange={(v) => updateDraftField('employment', 'startDate', v)}
@@ -319,7 +458,7 @@ export default function PersonalInformationPage() {
             </FieldRow>
 
             <FieldRow label="End Date">
-              <DateInput
+              <TextInput
                 disabled={!editing.employment}
                 value={draft.employment.endDate}
                 onChange={(v) => updateDraftField('employment', 'endDate', v)}
@@ -393,99 +532,168 @@ export default function PersonalInformationPage() {
         </SectionCard>
 
         {/* DOCUMENTS */}
-        <SectionCard
-          title={`Documents (${documentCount})`}
-          isEditing={editing.documents}
-          onEdit={() => startEdit('documents')}
-          onCancel={() => cancelEdit('documents')}
-          onSave={() => saveEdit('documents')}
-        >
-          <div className="stack">
-            {draft.documents.length === 0 ? (
-              <div className="empty-state">No documents uploaded.</div>
-            ) : (
-              <div className="doc-list">
-                {draft.documents.map((doc) => (
-                  <div key={doc.id} className="doc-item">
-                    <div>
-                      <div className="doc-title">{doc.filename}</div>
-                      <div className="doc-meta">{doc.uploadedAt}</div>
-                    </div>
+        <SectionCard title={`Documents`} canEdit={false}>
+          {Object.entries(draft.documents)
+            .filter(([, doc]) => !!doc)
+            .map(([type, doc]) => (
+              <div key={type} className="doc-item">
+                <div>
+                  <div className="doc-title">{type.replace('_', ' ').toUpperCase()}</div>
+                  <div className="doc-meta">{doc.uploadedAt}</div>
+                </div>
 
-                    <div className="button-group">
-                      <button className="btn-ghost" onClick={() => setPreviewDoc(doc)}>
-                        Preview
-                      </button>
-                      <button
-                        className="btn-primary"
-                        onClick={async () => {
-                          const response = await fetch(doc.url);
-                          const blob = await response.blob();
+                <div className="button-group">
+                  <button
+                    className="btn-ghost"
+                    onClick={() => {
+                      setPreviewDocType(doc.type);
+                    }}
+                  >
+                    Preview
+                  </button>
 
-                          const url = window.URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = doc.filename;
+                  <a
+                    href="#"
+                    className="btn-primary"
+                    onClick={async (e) => {
+                      e.preventDefault(); // ⛔ prevent redirect
 
-                          document.body.appendChild(link);
-                          link.click();
+                      try {
+                        const response = await fetch(doc.url, {
+                          credentials: 'include', // keep if auth/cookies required
+                        });
 
-                          document.body.removeChild(link);
-                          window.URL.revokeObjectURL(url);
-                        }}
-                      >
-                        Download
-                      </button>
-                      {/* <a
-                        href={doc.url}
-                        download={doc.filename}
-                        className="btn-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        Download
-                      </a> */}
-                    </div>
-                  </div>
-                ))}
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+                        link.download = doc.url || 'document';
+                        document.body.appendChild(link);
+                        link.click();
+
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (err) {
+                        console.error('Download failed:', err);
+                        alert('Failed to download file');
+                      }
+                    }}
+                  >
+                    Download
+                  </a>
+                </div>
               </div>
-            )}
-            {editing.documents && (
-              <label className="doc-upload-row">
-                <span className="doc-upload-plus">+</span>
-                <span>Add document</span>
-
-                <input
-                  type="file"
-                  hidden
-                  onChange={(e) => {
-                    onUploadDoc(e.target.files?.[0]);
-                    e.target.value = ''; // allow re-upload same file
-                  }}
-                />
-              </label>
-            )}
-          </div>
+            ))}
+          {Object.values(draft.documents).every((d) => !d) && (
+            <div className="empty-state">No documents uploaded.</div>
+          )}
+          <button
+            className="doc-upload-row"
+            onClick={() => {
+              setUploadDocType('');
+              setUploadFile(null);
+              setShowUploadModal(true);
+            }}
+          >
+            Add Documents
+          </button>
         </SectionCard>
 
-        {/* DOCUMENT PREVIEW */}
+        {/* PREVIEW */}
         <Modal
           open={!!previewDoc}
-          title={previewDoc?.filename || 'Document'}
-          onClose={() => setPreviewDoc(null)}
+          title={previewDocType}
+          onClose={() => {
+            setPreviewDocType(null);
+            setPreviewDoc(null);
+          }}
         >
-          {previewDoc && (
-            <>
-              {isImage(previewDoc.mime, previewDoc.url) ? (
-                <img src={previewDoc.url} alt={previewDoc.filename} className="preview-img" />
-              ) : isPdf(previewDoc.mime, previewDoc.url) ? (
-                <iframe title="PDF Preview" src={previewDoc.url} className="preview-frame" />
-              ) : (
-                <div className="empty-state">Preview not available. Please download.</div>
-              )}
-            </>
-          )}
+          <iframe
+            title="PDF Preview"
+            src={previewDoc}
+            className="preview-frame preview-frame--large"
+          />
+        </Modal>
+        <Modal
+          open={showUploadModal}
+          title="Upload Document"
+          onClose={() => setShowUploadModal(false)}
+        >
+          <div className="stack gap-lg">
+            {/* Document Type Dropdown */}
+            <FieldRow label="Document Type">
+              <Select
+                value={uploadDocType}
+                onChange={(v) => setUploadDocType(v)}
+                options={[
+                  { value: '', label: 'Select document type' },
+                  { value: 'driver_license', label: 'Driver License' },
+                  { value: 'opt_receipt', label: 'OPT Receipt' },
+                  { value: 'opt_ead', label: 'OPT EAD' },
+                  { value: 'i983', label: 'I-983' },
+                  { value: 'i20', label: 'I-20' },
+                ]}
+              />
+            </FieldRow>
+
+            {/* File input */}
+            <FieldRow label="File">
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+              />
+            </FieldRow>
+
+            {/* Actions */}
+            <div className="button-group">
+              <button
+                className="btn-ghost"
+                onClick={() => setShowUploadModal(false)}
+                disabled={uploading}
+              >
+                Cancel
+              </button>
+
+              <button
+                className="btn-primary"
+                disabled={!uploadDocType || !uploadFile || uploading}
+                onClick={async () => {
+                  try {
+                    setUploading(true);
+
+                    await uploadDocuments(uploadFile, uploadDocType);
+
+                    // refresh documents after upload
+                    const url = await previewDocuments(uploadDocType);
+                    if (url) {
+                      setDraft((prev) => ({
+                        ...prev,
+                        documents: {
+                          ...prev.documents,
+                          [uploadDocType]: {
+                            id: `${uploadDocType}-${Date.now()}`,
+                            type: uploadDocType,
+                            url,
+                            filename: uploadDocType.toUpperCase(),
+                            uploadedAt: new Date().toISOString().slice(0, 10),
+                            mime: url.endsWith('.pdf') ? 'application/pdf' : 'image/*',
+                          },
+                        },
+                      }));
+                    }
+
+                    setShowUploadModal(false);
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              >
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+          </div>
         </Modal>
       </PageShell>
     </>
