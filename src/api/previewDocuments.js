@@ -9,7 +9,7 @@ export async function previewDocuments(docType) {
 
   try {
     const res = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/api/preview-url?docType=${encodeURIComponent(docType)}`,
+      `${import.meta.env.VITE_API_BASE_URL}/preview-url?docType=${encodeURIComponent(docType)}`,
       {
         method: 'GET',
         headers: {

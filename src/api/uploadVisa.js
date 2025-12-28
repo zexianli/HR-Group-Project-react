@@ -14,7 +14,7 @@ export async function uploadVisa(file, docType) {
   formData.append('docType', docType);
 
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/visa/upload`, {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/visa/upload`, {
       method: 'POST',
       body: formData,
       headers: {

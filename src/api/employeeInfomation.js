@@ -1,4 +1,4 @@
-const EMPLOYEE_ME_URL = `${import.meta.env.VITE_API_BASE_URL}/api/employees/me`;
+const EMPLOYEE_ME_URL = `${import.meta.env.VITE_API_BASE_URL}/employees/me`;
 import { getAuthHeader } from './getToken';
 
 export async function getEmployeeProfile() {
