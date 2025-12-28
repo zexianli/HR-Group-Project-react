@@ -12,6 +12,7 @@ import OnboardPending from './pages/onboard/status/OnboardPending';
 import OnboardFailed from './pages/onboard/status/OnboardFailed';
 import OnboardFinish from './pages/onboard/status/OnboardFinish';
 import ProtectedRoute from './components/ProtectedRoute';
+import NotFound from './pages/NotFound';
 
 function AppRoutes() {
   return (
@@ -87,6 +88,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
