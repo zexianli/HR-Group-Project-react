@@ -3,6 +3,7 @@
  * @param {string} docType - e.g. 'avatar', 'resume', 'ead'
  * @returns {Promise<string | null>}
  */
+import { getAuthHeader } from './getToken';
 export async function previewDocuments(docType) {
   if (!docType) return null;
 
@@ -12,7 +13,7 @@ export async function previewDocuments(docType) {
       {
         method: 'GET',
         headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_API_MOCK_TOKEN}`,
+          Authorization: getAuthHeader(),
         },
       }
     );
