@@ -149,11 +149,12 @@ export default function HousingPage() {
     setCommentsLoading(true);
 
     try {
+      console.log(report.id);
       const res = await fetch(
         `${import.meta.env.VITE_API_BASE_URL}/api/housing/reports/${report.id}/comments`,
         {
           headers: {
-            Authorization: getAuthHeader,
+            Authorization: getAuthHeader(),
           },
         }
       );
