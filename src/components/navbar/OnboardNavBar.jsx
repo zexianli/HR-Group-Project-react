@@ -1,14 +1,22 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import NavbarContainer from './layout/NavbarContainer';
 import NavbarButton from './layout/NavbarButton';
 import NavbarText from './layout/NavbarText';
 
 function OnboardNavBar() {
+  const navigate = useNavigate();
+
   const navItems = [
     { label: 'Personal Information', path: '/personal' },
     { label: 'Visa Status Management', path: '/visa' },
     { label: 'Housing Information', path: '/housing' },
   ];
+
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <div
@@ -68,7 +76,7 @@ function OnboardNavBar() {
           <NavbarButton
             variant="secondary"
             onClick={() => {
-              // logout or back action
+              handleLogout();
             }}
           >
             Logout

@@ -9,6 +9,7 @@ import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
 import { validateTokenAPI, registerAPI } from '../../features/auth/authAPI';
 import { setCredentials } from '../../features/auth/authSlice';
+import { encodeString } from '../../utilities/encode';
 
 // Zod validation schema matching backend requirements
 const registerSchema = z
@@ -64,6 +65,8 @@ function Register() {
         return;
       }
 
+      // what if the link is already used?
+
       try {
         const response = await validateTokenAPI(registrationToken);
         const emailFromToken = response.data.data.email;
@@ -90,8 +93,9 @@ function Register() {
 
       const { user, token } = response.data.data;
       dispatch(setCredentials({ user, token, role: user.role }));
+      const encodedEmail = encodeString(email);
 
-      navigate('/personal', { replace: true });
+      navigate(`/onboarding?email=${encodedEmail}`, { replace: true });
     } catch (error) {
       console.error('Registration failed:', error);
 
