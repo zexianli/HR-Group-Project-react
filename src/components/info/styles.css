@@ -404,3 +404,113 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ================= Modal Scroll Fix ================= */
+
+/* Modal backdrop is already fixed */
+.modal {
+  max-height: 90vh;          /* never exceed viewport */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header stays fixed */
+.modal-header {
+  flex-shrink: 0;
+}
+
+/* Footer (if any) stays fixed */
+.modal-footer {
+  flex-shrink: 0;
+}
+
+/* 🚀 Scrollable content area */
+.modal-body {
+  overflow-y: auto;
+  max-height: calc(90vh - 120px); /* header + footer space */
+  padding-right: 6px;            /* avoid scrollbar overlap */
+}
+
+/* Optional: nicer scrollbar (WebKit) */
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Avatar container */
+.avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Upload button */
+.avatar-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+
+  color: #2563eb;               /* blue-600 */
+  background: #eff6ff;          /* blue-50 */
+  border: 1px dashed #93c5fd;   /* blue-300 */
+  border-radius: 6px;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+/* Hover state */
+.avatar-upload-btn:hover {
+  background: #dbeafe;          /* blue-100 */
+  border-color: #2563eb;
+}
+
+/* Active / click feedback */
+.avatar-upload-btn:active {
+  transform: scale(0.97);
+}
+
+/* Optional: disabled look if you ever add it */
+.avatar-upload-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.preview-frame {
+  width: 100%;
+  border: none;
+}
+
+/* Large modal preview */
+.preview-frame--large {
+  height: 80vh;        /* takes most of the screen */
+  max-height: 900px;  /* prevents excessive size on big monitors */
+}
+
+.doc-upload-row {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px dashed #c7d2fe;
+  background: #f8fafc;
+  color: #2563eb;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.doc-upload-row:hover {
+  background: #eef2ff;
+}

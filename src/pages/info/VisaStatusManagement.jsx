@@ -1,5 +1,10 @@
-import { useMemo, useState } from 'react';
+/* eslint-disable */
+import { useMemo, useState, useEffect } from 'react';
 import Navbar from '../../components/navbar/OnboardNavBar';
+import { mapBackendVisaToDocs } from '../../api/visaDataConverter';
+import { visaStatus } from '../../api/visaStatus';
+import { uploadVisa } from '../../api/uploadVisa';
+import { initialDocs } from '../../assets/data/initialDocs';
 
 /**
  * VisaStatusManagementPage (OPT-only)
@@ -143,47 +148,10 @@ function Row({ label, value }) {
 }
 
 // ---------- main component ----------
-export default function VisaStatusManagement({
-  // wire this from your onboarding profile (e.g. saved.employment.visaTitle)
-  initialVisaType = 'OPT', // "OPT" | "H1B" | "CPT" | ...
-}) {
-  // demo state (replace with data from backend)
-  const [visaType] = useState(initialVisaType);
-
-  const [docs, setDocs] = useState(() => ({
-    optReceipt: {
-      name: 'OPT Receipt',
-      status: 'not_uploaded',
-      filename: '',
-      feedback: '',
-      uploadedAt: '',
-    },
-    optEad: {
-      name: 'OPT EAD',
-      status: 'not_uploaded',
-      filename: '',
-      feedback: '',
-      uploadedAt: '',
-    },
-    i983: {
-      name: 'I-983',
-      status: 'not_uploaded',
-      filename: '',
-      feedback: '',
-      uploadedAt: '',
-      downloads: {
-        emptyTemplateUrl: '/templates/i-983-empty.pdf', // can be blank pdfs in /public/templates
-        sampleTemplateUrl: '/templates/i-983-sample.pdf',
-      },
-    },
-    i20: {
-      name: 'I-20',
-      status: 'not_uploaded',
-      filename: '',
-      feedback: '',
-      uploadedAt: '',
-    },
-  }));
+export default function VisaStatusManagement({ initialVisaType = 'OPT' }) {
+  const [visaType, setVisaType] = useState(initialVisaType);
+  const [docs, setDocs] = useState(initialDocs);
+  const [loading, setLoading] = useState(true);
 
   // ordered steps
   const steps = useMemo(
@@ -301,6 +269,32 @@ export default function VisaStatusManagement({
       },
     }));
   };
+
+  useEffect(() => {
+    let alive = true;
+
+    async function fetchVisaStatus() {
+      try {
+        const res = await visaStatus();
+        console.log('res', res);
+
+        if (!alive) return;
+
+        setVisaType(res.isOptCase ? 'OPT' : 'OTHER');
+        setDocs(mapBackendVisaToDocs(res));
+      } catch (err) {
+        console.error('Failed to load visa status', err);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    fetchVisaStatus();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   if (visaType !== 'OPT') {
     // Spec: if not OPT, page should not show any of these documents
