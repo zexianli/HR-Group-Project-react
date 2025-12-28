@@ -28,7 +28,7 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function PersonalInfo({ prevNextHandler }) {
+function PersonalInfo({ prevNextHandler, email, handleCheckUser }) {
   const {
     register,
     handleSubmit,
@@ -58,8 +58,11 @@ function PersonalInfo({ prevNextHandler }) {
       carcolor: '',
     },
   });
+  const [profilePictureUrl, setProfilePictureUrl] = useState('');
+  const [driverLicenseUrl, setDriverLicenseUrl] = useState('');
 
   useEffect(() => {
+    handleCheckUser();
     // get the data from local storage
     const savedPersonalInformationData = localStorage.getItem('personalInformation');
     const savedHasDriverLicense = localStorage.getItem('driverLicenseExist');
@@ -71,10 +74,12 @@ function PersonalInfo({ prevNextHandler }) {
       const profilePicture = retrieveFile('profilePicture');
       if (profilePicture) {
         setProfilePictureCopyName(localStorage.getItem('profilePicturename'));
+        setProfilePictureUrl(URL.createObjectURL(profilePicture));
       }
 
       if (hasDriverLicense) {
         const driverLicenseCopy = retrieveFile('driverLicenseCopy');
+        setDriverLicenseUrl(URL.createObjectURL(driverLicenseCopy));
         // populate form with driver license
         reset({
           firstname: personalInformationData.firstName,
@@ -114,20 +119,21 @@ function PersonalInfo({ prevNextHandler }) {
     // set it as useForm default values
   }, []);
 
-  // profile picture name
+  // profile picture
   const [profilePictureCopyName, setProfilePictureCopyName] = useState('');
 
-  // driver license name
+  // driver license
   const driverLicenseExist = watch('driverLicenseExist');
   const [driverLicenseCopyName, setDriverLicenseCopyName] = useState('');
 
   prevNextHandler({
     onNext: async () => {
+      handleCheckUser();
       let canGoNext = false;
       const submit = handleSubmit(async (data) => {
         // store things in local storage
         let personalInfoData;
-        console.log(data.profilePicture);
+        // console.log(data.profilePicture);
         if (!data.driverLicenseExist) {
           // personal info without license
           personalInfoData = {
@@ -136,7 +142,7 @@ function PersonalInfo({ prevNextHandler }) {
             middleName: data.middlename,
             preferredName: data.preferredname,
             ssn: data.ssn,
-            dateOfBirth: data.dateofbirth.toDate().toISOString(),
+            dateOfBirth: data.dateofbirth.toDate().toISOString().slice(0, 10),
             gender: data.gender,
             email: data.email,
           };
@@ -152,12 +158,12 @@ function PersonalInfo({ prevNextHandler }) {
             middleName: data.middlename,
             preferredName: data.preferredname,
             ssn: data.ssn,
-            dateOfBirth: data.dateofbirth.toDate().toISOString(),
+            dateOfBirth: data.dateofbirth.toDate().toISOString().slice(0, 10),
             gender: data.gender,
             email: data.email,
             driverLicense: {
               number: data.driverLicenseNumber,
-              expirationDate: data.driverLicenseExpDate, // process this to be a Date() object
+              expirationDate: data.driverLicenseExpDate.toDate().toISOString().slice(0, 10), // process this to be a Date() object
             },
             carInformation: {
               make: data.carmake,
@@ -293,7 +299,7 @@ function PersonalInfo({ prevNextHandler }) {
                 </MenuItem>
                 <MenuItem value="Male">Male</MenuItem>
                 <MenuItem value="Female">Female</MenuItem>
-                <MenuItem value="I do not wish to answer">I do not wish to answer</MenuItem>
+                <MenuItem value="No_answer">I do not wish to answer</MenuItem>
               </Select>
             )}
           />
@@ -315,10 +321,18 @@ function PersonalInfo({ prevNextHandler }) {
                 const file = e.target.files?.[0] || null;
                 setValue('profilePicture', file, { shouldValidate: true });
                 setProfilePictureCopyName(e.target.files[0].name);
+                setProfilePictureUrl(URL.createObjectURL(file));
               }}
             />
           </Button>
           {profilePictureCopyName}
+          {profilePictureUrl && profilePictureCopyName && (
+            <img
+              src={profilePictureUrl}
+              alt={profilePictureCopyName}
+              style={{ objectFit: 'contain', height: '200px', width: 'fit-content' }}
+            />
+          )}
         </FormGrid>
         {/* Driver's license */}
         {/* Do you have a car, if yes show questions related to driver's license and car */}
@@ -350,12 +364,15 @@ function PersonalInfo({ prevNextHandler }) {
                   {...register('driverLicenseCopy')}
                   type="file"
                   hidden
+                  accept="image/png,image/jpeg,image/jpg"
                   onChange={(e) => {
+                    const file = e.target.files?.[0] || null;
                     setDriverLicenseCopyName(e.target.files[0].name);
                     setValue('driverLicenseCopy', e.target.files[0], {
                       shouldValidate: true,
                       shouldDirty: true,
                     });
+                    setDriverLicenseUrl(URL.createObjectURL(file));
                   }}
                 />
               </Button>
@@ -365,6 +382,13 @@ function PersonalInfo({ prevNextHandler }) {
                 </FormHelperText>
               )}
               {driverLicenseCopyName}
+              {driverLicenseUrl && driverLicenseCopyName && (
+                <img
+                  src={driverLicenseUrl}
+                  alt={driverLicenseCopyName}
+                  style={{ objectFit: 'contain', height: '200px', width: 'fit-content' }}
+                />
+              )}
             </FormGrid>
             {/* Driver's License Number, expiration date */}
             <ReusableInputField

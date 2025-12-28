@@ -3,6 +3,7 @@ import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import ReusableButton from './ReusableButton';
+import { useState } from 'react';
 
 function ReusableStepper({
   children,
@@ -12,6 +13,7 @@ function ReusableStepper({
   handleSubmit,
   currPageIndex,
 }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   return (
     <>
       <Box sx={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -50,7 +52,16 @@ function ReusableStepper({
           {currPageIndex !== pagesName.length - 1 ? (
             <ReusableButton onClickMethod={handleNext}>Save and Continue</ReusableButton>
           ) : (
-            <ReusableButton onClickMethod={handleSubmit}>Submit</ReusableButton>
+            <ReusableButton
+              onClickMethod={() => {
+                setIsSubmitting(true);
+                handleSubmit();
+                setIsSubmitting(false);
+              }}
+              disabled={isSubmitting}
+            >
+              Submit
+            </ReusableButton>
           )}
           {currPageIndex !== 0 && <ReusableButton onClickMethod={handlePrev}>Prev</ReusableButton>}
         </Box>
