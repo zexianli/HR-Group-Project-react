@@ -22,7 +22,7 @@ export async function updateEmployeeProfile(payload) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${import.meta.env.VITE_API_MOCK_TOKEN}`,
+      Authorization: getAuthHeader(),
     },
     body: JSON.stringify(payload),
   });

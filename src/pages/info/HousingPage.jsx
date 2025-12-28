@@ -91,7 +91,7 @@ export default function HousingPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_API_MOCK_TOKEN}`,
+          Authorization: getAuthHeader(),
         },
         body: JSON.stringify({
           title: newReport.title,
@@ -123,7 +123,7 @@ export default function HousingPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_API_MOCK_TOKEN}`,
+            Authorization: getAuthHeader(),
           },
           body: JSON.stringify({
             description: previewComment,
@@ -153,7 +153,7 @@ export default function HousingPage() {
         `${import.meta.env.VITE_API_BASE_URL}/api/housing/reports/${report.id}/comments`,
         {
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_API_MOCK_TOKEN}`,
+            Authorization: getAuthHeader,
           },
         }
       );
