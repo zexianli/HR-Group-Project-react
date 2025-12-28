@@ -5,7 +5,7 @@
 import { getAuthHeader } from './getToken';
 export async function visaStatus() {
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/employee/visa/status`, {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/employee/visa/status`, {
       method: 'GET',
       headers: {
         Authorization: getAuthHeader(),
