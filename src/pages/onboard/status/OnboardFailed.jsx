@@ -88,22 +88,6 @@ function OnboardFailed() {
               }}
             >
               {rejectedMessage}
-              {/* Do not worry about it, as it usually happens a lot with the other candidates, and you
-              are still able to start a new application. However, to prevent further rejection, we
-              provided you with some feedback on your last application. Please read it before you
-              start a new one.
-              <br />
-              <br />
-              Do not worry about it, as it usually happens a lot with the other candidates, and you
-              are still able to start a new application. However, to prevent further rejection, we
-              provided you with some feedback on your last application. Please read it before you
-              start a new one.
-              <br />
-              <br />
-              Do not worry about it, as it usually happens a lot with the other candidates, and you
-              are still able to start a new application. However, to prevent further rejection, we
-              provided you with some feedback on your last application. Please read it before you
-              start a new one. */}
             </p>
             <button
               onClick={() => {
@@ -115,7 +99,6 @@ function OnboardFailed() {
           </>
         </Box>
       </OuterContainer>
-      {rejectedMessage}
     </>
   );
 }
