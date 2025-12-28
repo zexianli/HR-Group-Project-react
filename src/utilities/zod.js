@@ -190,3 +190,108 @@ export const onboardingAddressContactSchema = z
       }
     }
   });
+
+export const onboardingWorkAuthSchema = z
+  .object({
+    isUSPerson: z.string().min(1, 'Please select an option'),
+    usPersonStatus: z.string(),
+    usPersonDoc: z.instanceof(File).optional().nullable(),
+    notUSPersonWorkAuth: z.string(),
+    notUSPersonWorkAuthDoc: z.instanceof(File).optional().nullable(),
+    otherWorkAuthVisaTitle: z.string(),
+    workAuthStartDate: z.any(),
+    workAuthEndDate: z.any(),
+  })
+  .superRefine((data, ctx) => {
+    // validation for us person
+    if (data.isUSPerson === 'yes') {
+      if (data.usPersonStatus === '') {
+        ctx.addIssue({
+          message: 'Please select an option',
+          path: ['usPersonStatus'],
+        });
+      }
+
+      if (data.usPersonDoc === null) {
+        ctx.addIssue({
+          message: 'Please upload the document',
+          path: ['usPersonDoc'],
+        });
+      } else if (data.usPersonDoc.size > 5 * 1024 * 1024) {
+        ctx.addIssue({
+          message: 'Document must be less than 5MB',
+          path: ['usPersonDoc'],
+        });
+      }
+      // else if (['image/png', 'image/jpeg'].includes(data.usPersonDoc.type)) {
+      //   ctx.addIssue({
+      //     message: 'Please select an option',
+      //     path: ['usPersonStatus'],
+      //   });
+      // }
+    }
+  })
+  .superRefine((data, ctx) => {
+    // validation for non us person
+    if (data.isUSPerson === 'no') {
+      if (data.notUSPersonWorkAuth === '') {
+        ctx.addIssue({
+          message: 'Please select an option',
+          path: ['notUSPersonWorkAuth'],
+        });
+      }
+
+      if (data.notUSPersonWorkAuth !== '') {
+        // work auth doc
+        if (data.notUSPersonWorkAuthDoc === null) {
+          ctx.addIssue({
+            message: 'Please upload the right document',
+            path: ['notUSPersonWorkAuthDoc'],
+          });
+        } else if (data.notUSPersonWorkAuthDoc.size > 5 * 1024 * 1024) {
+          ctx.addIssue({
+            message: 'Document must be less than 5MB',
+            path: ['notUSPersonWorkAuthDoc'],
+          });
+        }
+
+        // work auth other
+        if (data.notUSPersonWorkAuth === 'Other') {
+          if (!data.otherWorkAuthVisaTitle) {
+            ctx.addIssue({
+              message: "Please enter your Visa's title",
+              path: ['otherWorkAuthVisaTitle'],
+            });
+          }
+        }
+
+        // start date and end date
+        if (!data.workAuthStartDate) {
+          ctx.addIssue({
+            message: "Please enter your work authorization's start date",
+            path: ['workAuthStartDate'],
+          });
+        }
+        if (!data.workAuthEndDate) {
+          ctx.addIssue({
+            message: "Please enter your work authorization's end date",
+            path: ['workAuthEndDate'],
+          });
+        }
+        if (
+          data.workAuthStartDate &&
+          data.workAuthEndDate &&
+          data.workAuthEndDate.isBefore(data.workAuthStartDate)
+        ) {
+          ctx.addIssue({
+            message: 'Start date need to be earlier than end date',
+            path: ['workAuthStartDate'],
+          });
+          ctx.addIssue({
+            message: 'End date need to be later than start date',
+            path: ['workAuthEndDate'],
+          });
+        }
+      }
+    }
+  });

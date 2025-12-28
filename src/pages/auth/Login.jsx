@@ -2,12 +2,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import TextInput from '../../components/auth/TextInput';
 import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
 import { loginAPI } from '../../features/auth/authAPI';
 import { setCredentials } from '../../features/auth/authSlice';
+import { encodeString } from '../../utilities/encode';
+import { useEffect } from 'react';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Enter username'),
@@ -17,6 +19,7 @@ const loginSchema = z.object({
 function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
 
   const {
     register,
@@ -27,6 +30,27 @@ function Login() {
     resolver: zodResolver(loginSchema),
   });
 
+  useEffect(() => {
+    if (user) {
+      // NOT_STARTED -> /onboarding/rejected
+      if (user.onboardingStatus === 'NOT_STARTED') {
+        navigate('/onboarding', { replace: true });
+      }
+      // REJECTED -> /onboarding/rejected
+      else if (user.onboardingStatus === 'REJECTED') {
+        navigate('/onboarding/rejected', { replace: true });
+      }
+      // PENDING -> /onboarding/pending
+      else if (user.onboardingStatus === 'PENDING') {
+        navigate('/onboarding/pending', { replace: true });
+      }
+      // APPROVED -> /personal
+      else if (user.onboardingStatus === 'APPROVED') {
+        navigate('/personal', { replace: true });
+      }
+    }
+  }, []);
+
   const onSubmit = async (data) => {
     try {
       const response = await loginAPI(data);
@@ -35,7 +59,19 @@ function Login() {
       const { user, token } = response.data.data;
       dispatch(setCredentials({ user, token, role: user.role }));
 
-      navigate('/personal', { replace: true });
+      if (user.onboardingStatus === 'NOT_STARTED') {
+        const encodedEmail = encodeString(user.email);
+
+        navigate(`/onboarding?email=${encodedEmail}`, { replace: true });
+      } else if (user.onboardingStatus === 'PENDING') {
+        // go to onboard pending page
+        navigate('/onboarding/pending', { replace: true });
+      } else if (user.onboardingStatus === 'REJECTED') {
+        // go to onboard rejected page
+        navigate('/onboarding/rejected', { replace: true });
+      } else if (user.onboardingStatus === 'APPROVED') {
+        navigate('/personal', { replace: true });
+      }
     } catch (error) {
       console.error('Login failed:', error);
 

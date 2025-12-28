@@ -26,7 +26,7 @@ const FormGrid = styled(Grid)(() => ({
   flexDirection: 'column',
 }));
 
-function AddressContact({ prevNextHandler }) {
+function AddressContact({ prevNextHandler, handleCheckUser }) {
   const {
     register,
     handleSubmit,
@@ -65,20 +65,35 @@ function AddressContact({ prevNextHandler }) {
   });
 
   useEffect(() => {
+    handleCheckUser();
     const savedAddressContactData = localStorage.getItem('addressContact');
     const savedHasReference = localStorage.getItem('referenceExist');
     if (savedAddressContactData) {
       const addressContactData = JSON.parse(savedAddressContactData);
       const hasReference = savedHasReference === 'true';
-      reset({
-        ...addressContactData,
-        referenceExist: hasReference,
-      });
+      if (hasReference) {
+        reset({
+          ...addressContactData,
+          referenceExist: hasReference,
+        });
+      } else {
+        reset({
+          ...addressContactData,
+          referenceFirstName: '',
+          referenceLastName: '',
+          referenceMiddleName: '',
+          referencePhone: '',
+          referenceEmail: '',
+          referenceRelationship: '',
+          referenceExist: hasReference,
+        });
+      }
     }
   }, []);
 
   prevNextHandler({
     onNext: async () => {
+      handleCheckUser();
       // submit, get the form data and save it as it is
       let canGoNext = false;
       const submit = handleSubmit((data) => {
@@ -121,14 +136,14 @@ function AddressContact({ prevNextHandler }) {
       return canGoNext;
     },
     onPrev: () => {
-      // don't submit, just get the form data and save it as it is
+      handleCheckUser();
       return true;
     },
   });
 
-  useEffect(() => {
-    console.log(errors);
-  }, [errors]);
+  // useEffect(() => {
+  //   console.log(errors);
+  // }, [errors]);
 
   const referenceExistValue = watch('referenceExist');
   const [emergencyContactId, setEmergencyContactId] = useState(0);

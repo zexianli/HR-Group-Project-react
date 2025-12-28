@@ -3,7 +3,6 @@ import { Container } from '@mui/material';
 import OuterContainer from './OuterContainer';
 
 function FormLayout({ children, header, additionalMessage }) {
-  console.log('Helllo');
   return (
     <>
       <OuterContainer>
