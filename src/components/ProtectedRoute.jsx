@@ -1,6 +1,9 @@
-import { useSelector } from 'react-redux';
+import { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { Navigate } from 'react-router';
 import { jwtDecode } from 'jwt-decode';
+import { validateTokenAPI } from '../features/auth/authAPI';
+import { logout } from '../features/auth/authSlice';
 
 function isTokenExpired(decoded) {
   if (!decoded?.exp) return true;
@@ -9,45 +12,107 @@ function isTokenExpired(decoded) {
   return decoded.exp < now;
 }
 
-function ProtectedRoute({ children, redirectTo = '/login' }) {
-  const { token, user } = useSelector((state) => state.auth);
+function ProtectedRoute({
+  children,
+  redirectTo = '/login',
+  allowedStatuses = null,
+  allowedRoles = ['EMPLOYEE'],
+}) {
+  const { token, user, role } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const [isValidating, setIsValidating] = useState(true);
+  const [isValid, setIsValid] = useState(false);
 
-  if (!token || !user.onboardingStatus) {
-    return <Navigate to={redirectTo} replace />;
-  }
+  useEffect(() => {
+    async function validate() {
+      if (!token || !user?.onboardingStatus) {
+        setIsValidating(false);
+        setIsValid(false);
+        return;
+      }
 
-  let redirect = false;
+      // Frontend validation
+      try {
+        const payload = jwtDecode(token);
+        if (isTokenExpired(payload)) {
+          dispatch(logout());
+          setIsValid(false);
+          setIsValidating(false);
+          return;
+        }
+      } catch (e) {
+        console.log('Token decode failed:', e);
+        dispatch(logout());
+        setIsValid(false);
+        setIsValidating(false);
+        return;
+      }
 
-  try {
-    const payload = jwtDecode(token);
-    if (isTokenExpired(payload)) {
-      redirect = true;
+      // Check with backend
+      try {
+        await validateTokenAPI();
+        setIsValid(true);
+      } catch (error) {
+        console.error('Backend validation failed:', error);
+        dispatch(logout());
+        setIsValid(false);
+      } finally {
+        setIsValidating(false);
+      }
     }
-  } catch (e) {
-    // token malformed
-    console.log(e);
-    redirect = true;
+
+    validate();
+  }, [token, user, dispatch]);
+
+  if (isValidating) {
+    return (
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
+        <p>Loading...</p>
+      </div>
+    );
   }
 
-  if (redirect) {
+  if (!token || !isValid || !user?.onboardingStatus) {
     return <Navigate to={redirectTo} replace />;
   }
 
-  if (user.onboardingStatus === 'NOT_STARTED') {
-    return <Navigate to={'/onboarding'} replace />;
+  if (role && !allowedRoles.includes(role)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
-  if (user.onboardingStatus === 'PENDING') {
-    return <Navigate to={'/onboarding/pending'} replace />;
+  // Helper function to get redirect path based on status
+  const getRedirectPath = (status) => {
+    switch (status) {
+      case 'NOT_STARTED':
+        return '/onboarding';
+      case 'PENDING':
+        return '/onboarding/pending';
+      case 'REJECTED':
+        return '/onboarding/rejected';
+      case 'APPROVED':
+        return '/personal';
+      default:
+        return redirectTo;
+    }
+  };
+
+  // If allowedStatuses is specified, check if user has required status
+  if (allowedStatuses) {
+    if (allowedStatuses.includes(user.onboardingStatus)) {
+      return children;
+    }
+    // User doesn't have required status, redirect to appropriate page
+    return <Navigate to={getRedirectPath(user.onboardingStatus)} replace />;
   }
-  if (user.onboardingStatus === 'REJECTED') {
-    return <Navigate to={'/onboarding/rejected'} replace />;
-  }
+
+  // Default behavior: redirect based on status (for routes without allowedStatuses)
   if (user.onboardingStatus === 'APPROVED') {
-    return <Navigate to={'/personal'} replace />;
+    return children;
   }
 
-  return children;
+  return <Navigate to={getRedirectPath(user.onboardingStatus)} replace />;
 }
 
 export default ProtectedRoute;

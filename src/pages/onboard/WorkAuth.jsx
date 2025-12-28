@@ -226,8 +226,8 @@ function WorkAuth({ prevNextHandler, handleCheckUser }) {
             console.log(onboardingData);
             const submitOnboardingResponse = await submitOnboarding(onboardingData, token);
             console.log('submit onboarding', submitOnboardingResponse);
-            user.onboardingStatus = 'PENDING';
-            dispatch(setCredentials({ user, token, role }));
+            const updatedUser = { ...user, onboardingStatus: 'PENDING' };
+            dispatch(setCredentials({ user: updatedUser, token, role }));
             // remove every onboarding related things from the local storage
             localStorage.removeItem('personalInformation');
             localStorage.removeItem('profilePicture');
@@ -241,9 +241,10 @@ function WorkAuth({ prevNextHandler, handleCheckUser }) {
             navigate('/onboarding/finish', { state: { fromOnboarding: true }, replace: true });
           } catch (error) {
             // token expired, need to login again
+            console.log('Submit error', error);
             if (
-              error.response.data.message === 'Invalid or expired token' &&
-              error.response.status === 401
+              error.response.status === 401 ||
+              error.response.data.message === 'Invalid or expired token'
             ) {
               navigate('/login', { replace: true });
             }

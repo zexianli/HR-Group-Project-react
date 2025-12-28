@@ -38,7 +38,7 @@ export default function HousingPage() {
   useEffect(() => {
     async function fetchHousing() {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/housing/me`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/housing/me`, {
           headers: {
             Authorization: getAuthHeader(),
           },
@@ -62,7 +62,7 @@ export default function HousingPage() {
 
   async function fetchReports() {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/housing/reports`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/housing/reports`, {
         headers: {
           Authorization: getAuthHeader(),
         },
@@ -87,7 +87,7 @@ export default function HousingPage() {
     if (!newReport.title.trim() || !newReport.description.trim()) return;
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/housing/reports`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/housing/reports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -118,7 +118,7 @@ export default function HousingPage() {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/housing/reports/${previewReport.id}/comments`,
+        `${import.meta.env.VITE_API_BASE_URL}/housing/reports/${previewReport.id}/comments`,
         {
           method: 'POST',
           headers: {
@@ -151,7 +151,7 @@ export default function HousingPage() {
     try {
       console.log(report.id);
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/housing/reports/${report.id}/comments`,
+        `${import.meta.env.VITE_API_BASE_URL}/housing/reports/${report.id}/comments`,
         {
           headers: {
             Authorization: getAuthHeader(),

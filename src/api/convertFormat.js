@@ -15,7 +15,7 @@ export function mapEmployeeProfileToInitialProfile(employeeProfile) {
       dob: employeeProfile.dateOfBirth ? employeeProfile.dateOfBirth.slice(0, 10) : '',
       gender: employeeProfile.gender ?? '',
       profilePictureUrl: employeeProfile.profilePictureKey
-        ? `/api/files/${employeeProfile.profilePictureKey}`
+        ? `/files/${employeeProfile.profilePictureKey}`
         : '',
     },
 

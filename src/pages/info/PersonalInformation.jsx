@@ -142,9 +142,9 @@ export default function PersonalInformationPage() {
     }));
   }
 
-  async function loadDocumentsOnly() {
+  async function loadDocumentsOnly(uploadedDocTypes = []) {
     const results = await Promise.all(
-      DOCUMENT_TYPES.map(async (type) => {
+      uploadedDocTypes.map(async (type) => {
         const url = await previewDocuments(type);
         if (!url) return [type, null];
 
@@ -161,7 +161,14 @@ export default function PersonalInformationPage() {
         ];
       })
     );
-    return Object.fromEntries(results);
+
+    const docsMap = Object.fromEntries(DOCUMENT_TYPES.map((type) => [type, null]));
+
+    results.forEach(([type, doc]) => {
+      if (doc) docsMap[type] = doc;
+    });
+
+    return docsMap;
   }
 
   const handleAvatarUpload = async (file) => {
@@ -214,8 +221,11 @@ export default function PersonalInformationPage() {
           };
         }
 
-        // 3️⃣ Load documents
-        const docsMap = await loadDocumentsOnly();
+        const uploadedDocTypes = backendProfile.documents
+          ? Object.keys(backendProfile.documents).filter((type) => backendProfile.documents[type])
+          : [];
+
+        const docsMap = await loadDocumentsOnly(uploadedDocTypes);
         profile = {
           ...profile,
           documents: docsMap,
