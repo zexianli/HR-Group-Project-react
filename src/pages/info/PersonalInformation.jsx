@@ -1,17 +1,11 @@
+/* eslint-disable */
 import { useState, useEffect } from 'react';
 import '../../components/info/styles.css';
 import Navbar from '../../components/navbar/OnboardNavBar';
 import SectionCard from '../../components/info/layout/SectionCard';
-import { previewDocuments } from '../../api/previewDocuments';
+import { previewDocumentsByType, previewTheWholeDocuments } from '../../api/previewDocuments';
 import { uploadDocuments } from '../../api/uploadDocuments';
-import {
-  deepClone,
-  FieldRow,
-  TextInput,
-  Select,
-  DateInput,
-  Modal,
-} from '../../components/info/layout/ModuleAction';
+import { deepClone, FieldRow, TextInput, Modal } from '../../components/info/layout/ModuleAction';
 import FALLBACK_AVATAR from '../../assets/data/fallback-avatar';
 import { initialProfile } from '../../assets/data/personal-info';
 import '../../components/info/styles.css';
@@ -42,7 +36,16 @@ const sectionOrder = [
   { key: 'documents' },
 ];
 
-const DOCUMENT_TYPES = ['driver_license', 'opt_receipt', 'opt_ead', 'i983', 'i20'];
+const DOCUMENT_TYPES = ['driver_license', 'opt_receipt', 'opt_ead', 'i_983', 'i_20'];
+const DOCUMENT_TYPES_BACKEND = ['driver_license', 'opt_receipt', 'opt_ead', 'i983', 'i20'];
+
+const FRONTEND_TO_BACKEND_DOC_TYPE = {
+  driver_license: 'driver_license',
+  opt_receipt: 'opt_receipt',
+  opt_ead: 'opt_ead',
+  i_983: 'i983',
+  i_20: 'i20',
+};
 
 export default function PersonalInformationPage() {
   // source of truth
@@ -57,9 +60,9 @@ export default function PersonalInformationPage() {
   const [previewDocType, setPreviewDocType] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null);
 
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadDocType, setUploadDocType] = useState('');
-  const [uploadFile, setUploadFile] = useState(null);
+  // const [showUploadModal, setShowUploadModal] = useState(false);
+  // const [uploadDocType, setUploadDocType] = useState('');
+  // const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
   /* ---------------- section edit handlers ---------------- */
@@ -117,12 +120,12 @@ export default function PersonalInformationPage() {
 
   /* ---------------- avatar logic ---------------- */
   async function loadAvatarOnly() {
-    const response = await previewDocuments('profile_picture');
+    const response = await previewDocumentsByType('profile_picture');
     return response || null;
   }
 
   async function loadAvatar() {
-    const response = await previewDocuments('profile_picture');
+    const response = await previewDocumentsByType('profile_picture');
     if (!response) return;
 
     setSaved((prev) => ({
@@ -142,33 +145,38 @@ export default function PersonalInformationPage() {
     }));
   }
 
-  async function loadDocumentsOnly(uploadedDocTypes = []) {
-    const results = await Promise.all(
-      uploadedDocTypes.map(async (type) => {
-        const url = await previewDocuments(type);
-        if (!url) return [type, null];
+  async function loadDocumentsOnly() {
+    try {
+      const response = await previewTheWholeDocuments();
+      console.log('previewTheWholeDocuments', response);
+      const list = Array.isArray(response) ? response : [];
 
-        return [
-          type,
-          {
-            id: `${type}-${Date.now()}`,
-            filename: type.replace('_', ' ').toUpperCase(),
-            url,
-            mime: url.endsWith('.pdf') ? 'application/pdf' : 'image/*',
-            uploadedAt: new Date().toISOString().slice(0, 10),
-            type,
-          },
-        ];
-      })
-    );
+      const documentsFromBackend = Object.fromEntries(
+        list.map((doc) => {
+          const normalizedType = doc.documentType.toLowerCase(); // opt_receipt, opt_ead, i983, i20
 
-    const docsMap = Object.fromEntries(DOCUMENT_TYPES.map((type) => [type, null]));
+          return [
+            normalizedType,
+            {
+              type: normalizedType,
+              url: doc.downloadUrl,
+              uploadedAt: doc.uploadedAt ? doc.uploadedAt.slice(0, 10) : null,
+            },
+          ];
+        })
+      );
 
-    results.forEach(([type, doc]) => {
-      if (doc) docsMap[type] = doc;
-    });
+      // Ensure ALL document slots exist (even if null)
+      const documentsMap = Object.fromEntries(
+        DOCUMENT_TYPES.map((type) => [type, documentsFromBackend[type] || null])
+      );
+      console.log('documentsMap', documentsMap);
+      return documentsMap;
+    } catch (err) {
+      console.error('Failed to load documents', err);
 
-    return docsMap;
+      return Object.fromEntries(DOCUMENT_TYPES.map((type) => [type, null]));
+    }
   }
 
   const handleAvatarUpload = async (file) => {
@@ -183,8 +191,7 @@ export default function PersonalInformationPage() {
     if (!previewDocType) return;
 
     async function loadPreviewDoc() {
-      const response = await previewDocuments(previewDocType);
-      console.log('response', response);
+      const response = await previewDocumentsByType(previewDocType);
       if (!response) {
         setPreviewDoc(null);
         return;
@@ -201,15 +208,14 @@ export default function PersonalInformationPage() {
 
     async function initProfile() {
       try {
-        // 1️⃣ Fetch base profile FIRST
+        // 1️⃣ Fetch employee profile
         const res = await getEmployeeProfile();
         const backendProfile = res?.employeeProfile;
-        console.log('backendProfile', backendProfile);
         if (!backendProfile) throw new Error('Employee profile not found');
 
         let profile = mapEmployeeProfileToInitialProfile(backendProfile);
 
-        // 2️⃣ Load avatar
+        // 2️⃣ Load avatar separately
         const avatarUrl = await loadAvatarOnly();
         if (avatarUrl) {
           profile = {
@@ -221,17 +227,14 @@ export default function PersonalInformationPage() {
           };
         }
 
-        const uploadedDocTypes = backendProfile.documents
-          ? Object.keys(backendProfile.documents).filter((type) => backendProfile.documents[type])
-          : [];
-
-        const docsMap = await loadDocumentsOnly(uploadedDocTypes);
+        // 3️⃣ Load ALL documents (single call)
+        const docsMap = await loadDocumentsOnly();
         profile = {
           ...profile,
           documents: docsMap,
         };
 
-        // 4️⃣ Single state commit (NO RACES)
+        // 4️⃣ Commit ONCE (no race conditions)
         if (mounted) {
           setSaved(profile);
           setDraft(profile);
@@ -556,7 +559,7 @@ export default function PersonalInformationPage() {
                   <button
                     className="btn-ghost"
                     onClick={() => {
-                      setPreviewDocType(doc.type);
+                      setPreviewDocType(FRONTEND_TO_BACKEND_DOC_TYPE[doc.type]);
                     }}
                   >
                     Preview
@@ -598,7 +601,7 @@ export default function PersonalInformationPage() {
           {Object.values(draft.documents).every((d) => !d) && (
             <div className="empty-state">No documents uploaded.</div>
           )}
-          <button
+          {/* <button
             className="doc-upload-row"
             onClick={() => {
               setUploadDocType('');
@@ -607,7 +610,7 @@ export default function PersonalInformationPage() {
             }}
           >
             Add Documents
-          </button>
+          </button> */}
         </SectionCard>
 
         {/* PREVIEW */}
@@ -625,20 +628,18 @@ export default function PersonalInformationPage() {
             className="preview-frame preview-frame--large"
           />
         </Modal>
-        <Modal
+        {/* <Modal
           open={showUploadModal}
           title="Upload Document"
           onClose={() => setShowUploadModal(false)}
         >
           <div className="stack gap-lg">
-            {/* Document Type Dropdown */}
             <FieldRow label="Document Type">
               <Select
                 value={uploadDocType}
                 onChange={(v) => setUploadDocType(v)}
                 options={[
                   { value: '', label: 'Select document type' },
-                  { value: 'driver_license', label: 'Driver License' },
                   { value: 'opt_receipt', label: 'OPT Receipt' },
                   { value: 'opt_ead', label: 'OPT EAD' },
                   { value: 'i983', label: 'I-983' },
@@ -647,7 +648,6 @@ export default function PersonalInformationPage() {
               />
             </FieldRow>
 
-            {/* File input */}
             <FieldRow label="File">
               <input
                 type="file"
@@ -656,7 +656,6 @@ export default function PersonalInformationPage() {
               />
             </FieldRow>
 
-            {/* Actions */}
             <div className="button-group">
               <button
                 className="btn-ghost"
@@ -676,7 +675,7 @@ export default function PersonalInformationPage() {
                     await uploadDocuments(uploadFile, uploadDocType);
 
                     // refresh documents after upload
-                    const url = await previewDocuments(uploadDocType);
+                    const url = await previewDocumentsByType(uploadDocType);
                     if (url) {
                       setDraft((prev) => ({
                         ...prev,
@@ -704,7 +703,7 @@ export default function PersonalInformationPage() {
               </button>
             </div>
           </div>
-        </Modal>
+        </Modal> */}
       </PageShell>
     </>
   );
