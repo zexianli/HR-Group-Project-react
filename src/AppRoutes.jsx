@@ -34,7 +34,7 @@ function AppRoutes() {
       <Route
         path="onboarding"
         element={
-          <ProtectedRoute allowedStatuses={['NOT_STARTED']}>
+          <ProtectedRoute allowedStatuses={['NOT_STARTED', 'REJECTED']}>
             <Onboarding />
           </ProtectedRoute>
         }
