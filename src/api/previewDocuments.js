@@ -4,7 +4,7 @@
  * @returns {Promise<string | null>}
  */
 import { getAuthHeader } from './getToken';
-export async function previewDocuments(docType) {
+export async function previewDocumentsByType(docType) {
   if (!docType) return null;
 
   try {
@@ -22,6 +22,25 @@ export async function previewDocuments(docType) {
 
     const data = await res.json(); // { url: string }
     return data.url || null;
+  } catch (err) {
+    console.error('fetchPreviewUrl failed:', err);
+    return null;
+  }
+}
+
+export async function previewTheWholeDocuments() {
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/employee/visa/documents`, {
+      method: 'GET',
+      headers: {
+        Authorization: getAuthHeader(),
+      },
+    });
+
+    if (!res.ok) return null;
+
+    const response = await res.json(); // { url: string }
+    return response.data || null;
   } catch (err) {
     console.error('fetchPreviewUrl failed:', err);
     return null;

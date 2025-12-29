@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import Navbar from '../../components/navbar/OnboardNavBar';
 import { mapBackendVisaToDocs } from '../../api/visaDataConverter';
 import { visaStatus } from '../../api/visaStatus';
@@ -152,6 +152,8 @@ export default function VisaStatusManagement({ initialVisaType = 'OPT' }) {
   const [visaType, setVisaType] = useState(initialVisaType);
   const [docs, setDocs] = useState(initialDocs);
   const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef(null);
+  const [activeUploadKey, setActiveUploadKey] = useState(null);
 
   // ordered steps
   const steps = useMemo(
@@ -163,6 +165,19 @@ export default function VisaStatusManagement({ initialVisaType = 'OPT' }) {
     ],
     []
   );
+
+  const DOC_TYPE_MAP = {
+    optReceipt: 'opt_receipt',
+    optEad: 'opt_ead',
+    i983: 'i983',
+    i20: 'i20',
+  };
+
+  const refreshVisaStatus = async () => {
+    const res = await visaStatus();
+    setVisaType(res.isOptCase ? 'OPT' : 'OTHER');
+    setDocs(mapBackendVisaToDocs(res));
+  };
 
   const prevKey = (k) => {
     const idx = steps.findIndex((s) => s.key === k);
@@ -241,33 +256,32 @@ export default function VisaStatusManagement({ initialVisaType = 'OPT' }) {
     return { tone: 'info', text: '' };
   };
 
-  const handleUpload = (key, file) => {
-    // In real app: upload to backend, then set status to pending.
-    setDocs((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        filename: file?.name || prev[key].filename || 'uploaded.pdf',
-        uploadedAt: new Date().toISOString().slice(0, 10),
-        status: 'pending',
-        feedback: '',
-      },
-    }));
-  };
+  const handleUpload = async (key, file) => {
+    if (!file) return;
+    console.log('hello', key, file);
 
-  // (Demo only) Buttons to simulate HR actions
-  const simulateHr = (key, action) => {
-    setDocs((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        status: action,
-        feedback:
-          action === 'rejected'
-            ? 'Please re-upload a clear, unexpired document. The previous file was unreadable/cropped.'
-            : '',
-      },
-    }));
+    try {
+      setLoading(true);
+
+      const documentType = DOC_TYPE_MAP[key];
+      if (!documentType) {
+        throw new Error(`Unknown document type for key: ${key}`);
+      }
+
+      // 1️⃣ Upload file to backend
+      let url = await uploadVisa({
+        documentType,
+        file,
+      });
+
+      // 2️⃣ Refresh visa status from backend
+      await refreshVisaStatus();
+    } catch (err) {
+      console.error('Visa upload failed:', err);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -276,7 +290,6 @@ export default function VisaStatusManagement({ initialVisaType = 'OPT' }) {
     async function fetchVisaStatus() {
       try {
         const res = await visaStatus();
-        console.log('res', res);
 
         if (!alive) return;
 
@@ -394,48 +407,39 @@ export default function VisaStatusManagement({ initialVisaType = 'OPT' }) {
                 >
                   {/* Upload */}
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                    <label
-                      style={{
-                        cursor: canUpload(key) ? 'pointer' : 'not-allowed',
-                        display: 'inline-flex',
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !activeUploadKey) return;
+
+                        handleUpload(activeUploadKey, file);
+
+                        // allow re-uploading same file
+                        e.target.value = '';
+                      }}
+                    />
+
+                    {/* Upload button */}
+                    <Button
+                      variant="primary"
+                      disabled={!canUpload(key) || loading}
+                      onClick={() => {
+                        setActiveUploadKey(key);
+                        fileInputRef.current?.click();
                       }}
                     >
-                      <input
-                        type="file"
-                        accept=".pdf,.png,.jpg,.jpeg"
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          handleUpload(key, e.target.files?.[0]);
-                        }}
-                      />
-
-                      <Button as="div" variant="primary" disabled={!canUpload(key)}>
-                        Upload {d.name}
-                      </Button>
-                    </label>
+                      Upload {d.name}
+                    </Button>
                   </div>
 
                   {!canUpload(key) && key !== 'optReceipt' && (
                     <span style={{ fontSize: 12, color: '#6b7280' }}>{uploadDisabledReason}</span>
                   )}
-
-                  {/* (Demo only) Simulate HR decisions */}
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
-                    <Button
-                      variant="secondary"
-                      disabled={d.status !== 'pending'}
-                      onClick={() => simulateHr(key, 'approved')}
-                    >
-                      (Demo) HR Approve
-                    </Button>
-                    <Button
-                      variant="danger"
-                      disabled={d.status !== 'pending'}
-                      onClick={() => simulateHr(key, 'rejected')}
-                    >
-                      (Demo) HR Reject
-                    </Button>
-                  </div>
                 </div>
               </div>
             </Card>
