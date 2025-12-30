@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Navigate } from 'react-router';
 import { jwtDecode } from 'jwt-decode';
 import { validateTokenAPI } from '../features/auth/authAPI';
-import { logout } from '../features/auth/authSlice';
+import { logout, setCredentials } from '../features/auth/authSlice';
 
 function isTokenExpired(decoded) {
   if (!decoded?.exp) return true;
@@ -50,7 +50,10 @@ function ProtectedRoute({
 
       // Check with backend
       try {
-        await validateTokenAPI();
+        const response = await validateTokenAPI();
+        const updatedUser = response.data.data;
+
+        dispatch(setCredentials({ user: updatedUser, token, role }));
         setIsValid(true);
       } catch (error) {
         console.error('Backend validation failed:', error);
@@ -62,7 +65,7 @@ function ProtectedRoute({
     }
 
     validate();
-  }, [token, user, dispatch]);
+  }, [token, dispatch, role]);
 
   if (isValidating) {
     return (
