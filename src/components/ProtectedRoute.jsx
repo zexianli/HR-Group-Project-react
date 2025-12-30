@@ -25,7 +25,7 @@ function ProtectedRoute({
 
   useEffect(() => {
     async function validate() {
-      if (!token || !user?.onboardingStatus) {
+      if (!token) {
         setIsValidating(false);
         setIsValid(false);
         return;
@@ -51,7 +51,7 @@ function ProtectedRoute({
       // Check with backend
       try {
         const response = await validateTokenAPI();
-        const updatedUser = response.data.data;
+        const updatedUser = response.data.data.user;
 
         dispatch(setCredentials({ user: updatedUser, token, role }));
         setIsValid(true);
