@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux';
 import TextInput from '../../components/auth/TextInput';
 import PrimaryButton from '../../components/auth/PrimaryButton';
 import FormLayout from '../../components/auth/layout/FormLayout';
-import { validateTokenAPI, registerAPI } from '../../features/auth/authAPI';
+import { validateRegistrationTokenAPI, registerAPI } from '../../features/auth/authAPI';
 import { setCredentials } from '../../features/auth/authSlice';
 
 // Zod validation schema matching backend requirements
@@ -67,7 +67,7 @@ function Register() {
       // what if the link is already used?
 
       try {
-        const response = await validateTokenAPI(registrationToken);
+        const response = await validateRegistrationTokenAPI(registrationToken);
         const emailFromToken = response.data.data.email;
 
         // Store email in state for display

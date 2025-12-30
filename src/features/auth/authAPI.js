@@ -15,3 +15,10 @@ export const validateTokenAPI = () =>
       Authorization: getAuthHeader(),
     },
   });
+
+export const validateRegistrationTokenAPI = (token) =>
+  api.get('/auth/validate-token', {
+    params: {
+      token,
+    },
+  });
