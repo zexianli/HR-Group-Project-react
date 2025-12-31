@@ -42,7 +42,7 @@ function AppRoutes() {
       <Route
         path="onboarding/finish"
         element={
-          <ProtectedRoute allowedStatuses={['APPROVED']}>
+          <ProtectedRoute>
             <OnboardFinish />
           </ProtectedRoute>
         }
@@ -63,7 +63,6 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="personal"
         element={

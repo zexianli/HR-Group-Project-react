@@ -44,7 +44,7 @@ function PersonalInfo({ prevNextHandler, email, handleCheckUser }) {
       lastname: '',
       middlename: '',
       preferredname: '',
-      email: 'abcd123@gmail.com', // get the default value from URL
+      email: email, // get the default value from URL
       dateofbirth: null,
       ssn: '',
       gender: '',
@@ -240,7 +240,6 @@ function PersonalInfo({ prevNextHandler, email, handleCheckUser }) {
           id="email"
           label="Email"
           placeholder="e.g, jwhite@gmail.com"
-          value="abcd1234@gmail.com"
           type="email"
           error={false}
           disabled
