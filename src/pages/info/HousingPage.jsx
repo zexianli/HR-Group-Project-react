@@ -401,6 +401,7 @@ function StatusBadge({ status }) {
   const map = {
     OPEN: 'badge-open',
     'In Progress': 'badge-progress',
+    IN_PROGRESS: 'badge-progress',
     CLOSED: 'badge-closed',
   };
 
