@@ -20,11 +20,7 @@ import ReusableFileInput from '../../components/form/ReusableFileInput';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import {
-  submitOnboarding,
-  uploadFile,
-  uploadOPTFile,
-} from '../../features/onboarding/onboardingAPI';
+import { submitOnboarding, uploadFile } from '../../features/onboarding/onboardingAPI';
 import { retrieveFile } from '../../utilities/fileParser';
 import { useNavigate } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
@@ -204,10 +200,7 @@ function WorkAuth({ prevNextHandler, handleCheckUser }) {
 
               // console.log(workAuthType);
               // console.log(notUSPersonWorkAuthDoc || usPersonDoc);
-              const postWAResponse =
-                workAuthType === 'opt_receipt'
-                  ? await uploadOPTFile(waFormData, token)
-                  : await uploadFile(waFormData, token);
+              const postWAResponse = await uploadFile(waFormData, token);
 
               console.log('upload work auth', postWAResponse);
             }

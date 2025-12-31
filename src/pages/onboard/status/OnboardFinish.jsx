@@ -11,12 +11,13 @@ function OnboardFinish() {
     if (!user) {
       return <Navigate to="/login" replace />;
     } else if (user) {
-      // NOT_STARTED -> /onboarding/rejected
-      if (user.onboardingStatus === 'NOT_STARTED') {
-        return <Navigate to="/onboarding" replace />;
-      }
+      // // NOT_STARTED -> /onboarding/rejected
+      // if (user.onboardingStatus === 'NOT_STARTED') {
+      //   return <Navigate to="/onboarding" replace />;
+      // }
+
       // REJECTED -> /onboarding/rejected
-      else if (user.onboardingStatus === 'REJECTED') {
+      if (user.onboardingStatus === 'REJECTED') {
         return <Navigate to="/onboarding/rejected" replace />;
       }
       // PENDING -> /onboarding/pending

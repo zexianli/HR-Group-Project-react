@@ -54,6 +54,7 @@ function Login() {
   const onSubmit = async (data) => {
     try {
       const response = await loginAPI(data);
+      console.log(response);
 
       // Store credentials in Redux
       const { user, token } = response.data.data;

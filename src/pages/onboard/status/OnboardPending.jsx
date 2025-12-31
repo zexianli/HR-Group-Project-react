@@ -8,11 +8,8 @@ import { useSelector } from 'react-redux';
 function OnboardPending() {
   const navigate = useNavigate();
   const { token } = useSelector((state) => state.auth);
-  // console.log(token);
-  // console.log('hello');
 
   useEffect(() => {
-    // console.log(token);
     const fetchAPI = async () => {
       try {
         const response = await fetchOnboarding(token);
@@ -21,6 +18,7 @@ function OnboardPending() {
         if (response.data.onboarding.status === 'REJECTED') {
           navigate('/onboarding/rejected', { replace: true });
         }
+
         // APPROVED -> /personal
         if (response.data.onboarding.status === 'APPROVED') {
           navigate('/personal', { replace: true });
@@ -29,6 +27,7 @@ function OnboardPending() {
         console.log(e);
         // token expired, need to login again
         if (e.response.status === 401) {
+          console.log('response status 401');
           navigate('/login', { replace: true });
         }
       }
@@ -38,6 +37,7 @@ function OnboardPending() {
     // always check its onboarding status
   }, []);
 
+  console.log('here');
   return (
     <OuterContainer>
       <Box

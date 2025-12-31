@@ -59,6 +59,7 @@ function Onboarding() {
   }
 
   const email = user.email || '';
+  console.log(email);
 
   const prevNextHandlerRef = useRef({});
   const pages = [

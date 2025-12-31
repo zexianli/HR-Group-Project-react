@@ -5,19 +5,19 @@ export const onboardingPersonalInfoSchema = z
   .object({
     firstname: z
       .string()
-      .min(3, 'First name must be at least 3 characters long')
+      .min(1, 'First name cannot be empty')
       .max(12, 'First name can be at most 12 characters long')
       .regex(/^[A-Za-z]+$/, 'Only letters allowed'),
     lastname: z
       .string()
-      .min(3, 'Last name must be at least 3 characters long')
+      .min(1, 'Last name cannot be empty')
       .max(12, 'Last name can be at most 12 characters long')
       .regex(/^[A-Za-z]+$/, 'Only letters allowed'),
     middlename: z.union([
       z.literal(''),
       z
         .string()
-        .min(3, 'Middle name must be at least 3 characters long')
+        .min(1, 'Middle name cannot be empty')
         .max(12, 'Middle name can be at most 12 characters long')
         .regex(/^[A-Za-z]+$/, 'Only letters allowed'),
     ]),

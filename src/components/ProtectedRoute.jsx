@@ -18,6 +18,7 @@ function ProtectedRoute({
   allowedStatuses = null,
   allowedRoles = ['EMPLOYEE'],
 }) {
+  // console.log(redirectTo, allowedStatuses, allowedRoles);
   const { token, user, role } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const [isValidating, setIsValidating] = useState(true);
